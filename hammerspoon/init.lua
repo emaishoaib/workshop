@@ -1,0 +1,7 @@
+require("modules.hotkeys")
+require("modules.system")
+require("modules.finder")
+require("modules.vscode")
+require("modules.obsidian")
+require("modules.chrome")
+require("modules.app_lifecycle")
