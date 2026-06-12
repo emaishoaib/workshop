@@ -44,6 +44,8 @@ source ~/.zshrc
 | `gpr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
+| `glog` | Show all commits introduced on current branch (oneline) |
+| `git blog` | Same as `glog` but as a native git alias |
 
 # `hammerspoon/`
 Lua scripts for [Hammerspoon](https://www.hammerspoon.org/) — macOS automation triggered by system events, hotkeys, and login hooks.

@@ -73,3 +73,10 @@ grbi() {
   base=$(git merge-base HEAD "origin/$default_branch")
   [ -n "$base" ] && git rebase -i "$base"
 }
+
+# Show all commits introduced on current branch
+glog() {
+  local default_branch
+  default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+  git log --oneline HEAD "^origin/$default_branch"
+}
