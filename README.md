@@ -46,6 +46,7 @@ source ~/.zshrc
 | `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
 | `glog` | Show all commits introduced on current branch (oneline) |
 | `git blog` | Same as `glog` but as a native git alias |
+| `ghelp` | Print all available commands and aliases |
 
 # `hammerspoon/`
 Lua scripts for [Hammerspoon](https://www.hammerspoon.org/) — macOS automation triggered by system events, hotkeys, and login hooks.
