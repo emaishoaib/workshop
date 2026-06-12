@@ -80,3 +80,24 @@ glog() {
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
   git log --oneline HEAD "^origin/$default_branch"
 }
+
+# Show all custom git commands and functions
+ghelp() {
+  echo "── git aliases ──────────────────────────────"
+  echo "  git rbi   interactive rebase from branch point"
+  echo "  git blog  oneline log of commits on current branch"
+  echo ""
+  echo "── zsh functions ────────────────────────────"
+  echo "  gco       fuzzy checkout (local + remote)"
+  echo "  gcol      fuzzy checkout (local only)"
+  echo "  gbd       fuzzy delete local branch"
+  echo "  gbdr      fuzzy delete remote branch"
+  echo "  gadd      fuzzy git add"
+  echo "  gres      fuzzy git restore (unstage/discard)"
+  echo "  gstash    fuzzy stash pop"
+  echo "  gsha      fuzzy checkout a commit (detached HEAD)"
+  echo "  gpr       checkout a PR by number or fuzzy-pick"
+  echo "  grbi      interactive rebase over current branch"
+  echo "  glog      show commits on current branch"
+  echo "  ghelp     show this help"
+}
