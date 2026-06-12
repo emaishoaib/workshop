@@ -1,0 +1,2 @@
+[alias]
+    rbi = !git rebase -i $(git merge-base HEAD origin/$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}'))
