@@ -6,6 +6,17 @@ A personal collection of macOS automation scripts, AI agent tooling, and anythin
 
 ---
 
+# `git/`
+
+Prerequisites: brew install fzf && $(brew --prefix)/opt/fzf/install
+
+Then add one line to ~/.zshrc:
+    source ~/path/to/workshop/git/functions.zsh
+Using:
+    `echo 'source ~/path/to/workshop/git/functions.zsh' >> ~/.zshrc`
+
+Don't forget to reload: `source ~/.zshrc`
+
 # `hammerspoon/`
 Lua scripts for [Hammerspoon](https://www.hammerspoon.org/) — macOS automation triggered by system events, hotkeys, and login hooks.
 
