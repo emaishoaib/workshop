@@ -53,3 +53,14 @@ gsha() {
   commit=$(git log --oneline --all | fzf --query="$1" --preview='git show --stat --color=always {1}')
   [ -n "$commit" ] && git checkout "$(echo "$commit" | awk '{print $1}')"
 }
+
+# Checkout a PR by number, or fuzzy-pick from open PRs
+gpr() {
+  if [ -n "$1" ]; then
+    gh pr checkout "$1"
+  else
+    local pr
+    pr=$(gh pr list | fzf --query="$2" --preview='gh pr view {1} 2>/dev/null')
+    [ -n "$pr" ] && gh pr checkout "$(echo "$pr" | awk '{print $1}')"
+  fi
+}
