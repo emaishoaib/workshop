@@ -64,3 +64,12 @@ gpr() {
     [ -n "$pr" ] && gh pr checkout "$(echo "$pr" | awk '{print $1}')"
   fi
 }
+
+# Interactive rebase over all commits on current branch
+grbi() {
+  local default_branch
+  default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+  local base
+  base=$(git merge-base HEAD "origin/$default_branch")
+  [ -n "$base" ] && git rebase -i "$base"
+}

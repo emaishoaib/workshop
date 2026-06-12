@@ -20,8 +20,13 @@ brew install gh && gh auth login
 ## Setup
 
 ```bash
+# Source the functions in your shell
 echo 'source ~/path/to/workshop/git/functions.zsh' >> ~/.zshrc
 source ~/.zshrc
+
+# Add to ~/.gitconfig to enable git aliases:
+[include]
+    path = ~/path/to/workshop/git/aliases.gitconfig
 ```
 
 ## Functions
@@ -37,6 +42,8 @@ source ~/.zshrc
 | `gstash` | Fuzzy stash pop |
 | `gsha` | Fuzzy checkout a commit (detached HEAD) |
 | `gpr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
+| `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
+| `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
 
 # `hammerspoon/`
 Lua scripts for [Hammerspoon](https://www.hammerspoon.org/) — macOS automation triggered by system events, hotkeys, and login hooks.
