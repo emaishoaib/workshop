@@ -33,19 +33,19 @@ source ~/.zshrc
 
 | Command | Description |
 |---------|-------------|
+| `gadd` | Fuzzy `git add` (multi-select with Tab) |
 | `gck` | Fuzzy checkout — all branches (local + remote) |
 | `gckl` | Fuzzy checkout — local branches only |
+| `gckpr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `gdel` | Fuzzy delete local branch |
 | `gdelr` | Fuzzy delete remote branch |
-| `gadd` | Fuzzy `git add` (multi-select with Tab) |
-| `gres` | Fuzzy `git restore` (multi-select with Tab) |
-| `gstash` | Fuzzy stash pop |
-| `gsha` | Fuzzy checkout a commit (detached HEAD) |
-| `gckpr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
+| `glog` | Show all commits introduced on current branch (oneline) |
+| `git blog` | Same as `glog` but as a native git alias (requires `aliases.gitconfig` include) |
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
-| `glog` | Show all commits introduced on current branch (oneline) |
-| `git blog` | Same as `glog` but as a native git alias |
+| `gres` | Fuzzy `git restore` (multi-select with Tab) |
+| `gsha` | Fuzzy checkout a commit (detached HEAD) |
+| `gstash` | Fuzzy stash pop |
 | `ghelp` | Print all available commands and aliases |
 
 # `hammerspoon/`
