@@ -33,15 +33,15 @@ source ~/.zshrc
 
 | Command | Description |
 |---------|-------------|
-| `gco` | Fuzzy checkout — all branches (local + remote) |
-| `gcol` | Fuzzy checkout — local branches only |
-| `gbd` | Fuzzy delete local branch |
-| `gbdr` | Fuzzy delete remote branch |
+| `gck` | Fuzzy checkout — all branches (local + remote) |
+| `gckl` | Fuzzy checkout — local branches only |
+| `gdel` | Fuzzy delete local branch |
+| `gdelr` | Fuzzy delete remote branch |
 | `gadd` | Fuzzy `git add` (multi-select with Tab) |
 | `gres` | Fuzzy `git restore` (multi-select with Tab) |
 | `gstash` | Fuzzy stash pop |
 | `gsha` | Fuzzy checkout a commit (detached HEAD) |
-| `gpr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
+| `gckpr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
 | `glog` | Show all commits introduced on current branch (oneline) |
