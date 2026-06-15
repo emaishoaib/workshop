@@ -6,6 +6,38 @@ A personal collection of macOS automation scripts, AI agent tooling, and anythin
 
 ---
 
+# New machine setup
+
+```bash
+git clone git@github.com:mustafa.shoaib/workshop.git ~/Documents_Public/repos_personal/workshop
+cd ~/Documents_Public/repos_personal/workshop
+bash setup.sh
+source ~/.zshrc
+```
+
+`setup.sh` installs prerequisites (fzf, gh), wires the shell config into `~/.zshrc`, and adds the git aliases include to `~/.gitconfig`. Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
+
+---
+
+# `shell/`
+
+`init.zsh` is the single entry point sourced by `~/.zshrc`. It loads fzf, git functions, shell aliases, and docker helpers — everything in the repo that should be available in every shell session.
+
+General aliases in `aliases.zsh`:
+
+| Alias | Description |
+|-------|-------------|
+| `czsh` | Open `~/.zshrc` in VS Code |
+| `rzsh` | Reload `~/.zshrc` |
+
+# `docker/`
+
+Docker helpers. Currently work-project specific.
+
+| Function | Description |
+|----------|-------------|
+| `dcli` | Run a CLI command inside the app container |
+
 # `git/`
 
 Fzf-powered git functions and aliases. Replaces tedious branch/file picking with fuzzy search.
@@ -15,18 +47,6 @@ Fzf-powered git functions and aliases. Replaces tedious branch/file picking with
 ```bash
 brew install fzf && $(brew --prefix)/opt/fzf/install
 brew install gh && gh auth login
-```
-
-## Setup
-
-```bash
-# Source the functions in your shell
-echo 'source ~/path/to/workshop/git/functions.zsh' >> ~/.zshrc
-source ~/.zshrc
-
-# Add to ~/.gitconfig to enable git aliases:
-[include]
-    path = ~/path/to/workshop/git/aliases.gitconfig
 ```
 
 ## Functions
