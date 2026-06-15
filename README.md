@@ -56,6 +56,7 @@ brew install gh && gh auth login
 | `gck` | Fuzzy checkout — all branches (local + remote) |
 | `gckl` | Fuzzy checkout — local branches only |
 | `gckpr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
+| `gcoma` | Amend the last commit |
 | `gdel` | Fuzzy delete local branch |
 | `gdelr` | Fuzzy delete remote branch |
 | `glog` | Show all commits introduced on current branch (oneline) |
