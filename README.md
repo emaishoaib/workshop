@@ -33,7 +33,6 @@ source ~/.zshrc
 
 | Command | Description |
 |---------|-------------|
-| `gadd` | Fuzzy `git add` (multi-select with Tab) |
 | `gck` | Fuzzy checkout — all branches (local + remote) |
 | `gckl` | Fuzzy checkout — local branches only |
 | `gckpr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
@@ -43,9 +42,6 @@ source ~/.zshrc
 | `git blog` | Same as `glog` but as a native git alias (requires `aliases.gitconfig` include) |
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
-| `gres` | Fuzzy `git restore` (multi-select with Tab) |
-| `gsha` | Fuzzy checkout a commit (detached HEAD) |
-| `gstash` | Fuzzy stash pop |
 | `ghelp` | Print all available commands and aliases |
 
 # `hammerspoon/`

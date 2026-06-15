@@ -1,10 +1,3 @@
-# Fuzzy git add
-gadd() {
-  local files
-  files=$(git status --short | fzf --multi --query="$1" | awk '{print $2}')
-  [ -n "$files" ] && echo "$files" | xargs git add
-}
-
 # Checkout branch (all: local + remote)
 gck() {
   local branch
@@ -51,7 +44,6 @@ ghelp() {
   echo "  git rbi   interactive rebase from branch point"
   echo ""
   echo "── zsh functions ────────────────────────────"
-  echo "  gadd      fuzzy git add"
   echo "  gck       fuzzy checkout (local + remote)"
   echo "  gckl      fuzzy checkout (local only)"
   echo "  gckpr     checkout a PR by number or fuzzy-pick"
@@ -59,9 +51,6 @@ ghelp() {
   echo "  gdelr     fuzzy delete remote branch"
   echo "  glog      show commits on current branch"
   echo "  grbi      interactive rebase over current branch"
-  echo "  gres      fuzzy git restore (unstage/discard)"
-  echo "  gsha      fuzzy checkout a commit (detached HEAD)"
-  echo "  gstash    fuzzy stash pop"
   echo "  ghelp     show this help"
 }
 
@@ -81,23 +70,3 @@ grbi() {
   [ -n "$base" ] && git rebase -i "$base"
 }
 
-# Fuzzy git restore (unstage or discard changes)
-gres() {
-  local files
-  files=$(git status --short | fzf --multi --query="$1" | awk '{print $2}')
-  [ -n "$files" ] && echo "$files" | xargs git restore
-}
-
-# Fuzzy checkout a specific commit (detached HEAD)
-gsha() {
-  local commit
-  commit=$(git log --oneline --all | fzf --query="$1" --preview='git show --stat --color=always {1}')
-  [ -n "$commit" ] && git checkout "$(echo "$commit" | awk '{print $1}')"
-}
-
-# Fuzzy git stash pop/apply
-gstash() {
-  local entry
-  entry=$(git stash list | fzf --query="$1" --preview='git stash show -p {1} 2>/dev/null | head -20' | cut -d: -f1)
-  [ -n "$entry" ] && git stash pop "$entry"
-}
