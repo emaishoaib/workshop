@@ -1,26 +1,26 @@
 # Checkout branch (all: local + remote)
-gco() {
+gck() {
   local branch
   branch=$(git branch --all | grep -v HEAD | sed 's/remotes\/origin\///' | sort -u | fzf --query="$1" --preview='git log --oneline --color=always {1} 2>/dev/null | head -10')
   [ -n "$branch" ] && git checkout "$(echo "$branch" | tr -d '[:space:]')"
 }
 
 # Checkout branch (local only)
-gcol() {
+gckl() {
   local branch
   branch=$(git branch | grep -v HEAD | fzf --query="$1" --preview='git log --oneline --color=always {1} 2>/dev/null | head -10')
   [ -n "$branch" ] && git checkout "$(echo "$branch" | tr -d '[:space:]')"
 }
 
 # Delete local branch
-gbd() {
+gdel() {
   local branch
   branch=$(git branch | grep -v HEAD | fzf --query="$1")
   [ -n "$branch" ] && git branch -D "$(echo "$branch" | tr -d '[:space:]')"
 }
 
 # Delete remote branch
-gbdr() {
+gdelr() {
   local branch
   branch=$(git branch -r | grep -v HEAD | sed 's/origin\///' | fzf --query="$1")
   [ -n "$branch" ] && git push origin --delete "$(echo "$branch" | tr -d '[:space:]')"
@@ -55,7 +55,7 @@ gsha() {
 }
 
 # Checkout a PR by number, or fuzzy-pick from open PRs
-gpr() {
+gckpr() {
   if [ -n "$1" ]; then
     gh pr checkout "$1"
   else
@@ -88,15 +88,15 @@ ghelp() {
   echo "  git blog  oneline log of commits on current branch"
   echo ""
   echo "── zsh functions ────────────────────────────"
-  echo "  gco       fuzzy checkout (local + remote)"
-  echo "  gcol      fuzzy checkout (local only)"
-  echo "  gbd       fuzzy delete local branch"
-  echo "  gbdr      fuzzy delete remote branch"
+  echo "  gck       fuzzy checkout (local + remote)"
+  echo "  gckl      fuzzy checkout (local only)"
+  echo "  gdel      fuzzy delete local branch"
+  echo "  gdelr     fuzzy delete remote branch"
   echo "  gadd      fuzzy git add"
   echo "  gres      fuzzy git restore (unstage/discard)"
   echo "  gstash    fuzzy stash pop"
   echo "  gsha      fuzzy checkout a commit (detached HEAD)"
-  echo "  gpr       checkout a PR by number or fuzzy-pick"
+  echo "  gckpr     checkout a PR by number or fuzzy-pick"
   echo "  grbi      interactive rebase over current branch"
   echo "  glog      show commits on current branch"
   echo "  ghelp     show this help"
