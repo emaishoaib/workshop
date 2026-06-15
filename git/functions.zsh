@@ -23,6 +23,11 @@ gckpr() {
   fi
 }
 
+# Amend the last commit
+gcoma() {
+  git commit --amend
+}
+
 # Delete local branch
 gdel() {
   local branch
@@ -47,6 +52,7 @@ ghelp() {
   echo "  gck       fuzzy checkout (local + remote)"
   echo "  gckl      fuzzy checkout (local only)"
   echo "  gckpr     checkout a PR by number or fuzzy-pick"
+  echo "  gcoma     amend the last commit"
   echo "  gdel      fuzzy delete local branch"
   echo "  gdelr     fuzzy delete remote branch"
   echo "  glog      show commits on current branch"
