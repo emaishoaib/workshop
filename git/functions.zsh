@@ -42,6 +42,70 @@ gdelr() {
   [ -n "$branch" ] && git push origin --delete "$(echo "$branch" | tr -d '[:space:]')"
 }
 
+# Multi-select files to stash with a name
+gstash() {
+  local name="$1"
+  if [ -z "$name" ]; then
+    echo "Usage: gstash <stash-name>"
+    return 1
+  fi
+
+  local files
+  files=$(
+    { git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard; } \
+    | sort -u \
+    | fzf -m \
+        --preview='git diff HEAD -- {} 2>/dev/null | head -50' \
+        --preview-window=right:60% \
+        --prompt="Select files to stash > " \
+        --header="Tab: select/deselect  |  Enter: confirm  |  Ctrl-C: cancel"
+  )
+
+  if [ -z "$files" ]; then
+    echo "No files selected."
+    return 0
+  fi
+
+  git stash push -u -m "$name" -- ${(f)files}
+  echo "Stashed as: '$name'"
+}
+
+# Rename current branch locally and remotely
+grem() {
+  local new_name="$1"
+  if [ -z "$new_name" ]; then
+    echo "Usage: grem <new-branch-name>"
+    return 1
+  fi
+
+  local old_name
+  old_name=$(git rev-parse --abbrev-ref HEAD)
+
+  if [ "$old_name" = "HEAD" ]; then
+    echo "Error: not on a branch (detached HEAD state)"
+    return 1
+  fi
+
+  if [ "$old_name" = "$new_name" ]; then
+    echo "Error: new name is the same as the current branch name"
+    return 1
+  fi
+
+  echo "Renaming '$old_name' → '$new_name'..."
+
+  git branch -m "$new_name"
+  git push origin "$new_name" --set-upstream
+
+  if git ls-remote --exit-code --heads origin "$old_name" > /dev/null 2>&1; then
+    git push origin --delete "$old_name"
+    echo "Deleted remote branch '$old_name'"
+  else
+    echo "(No remote branch '$old_name' to delete)"
+  fi
+
+  echo "Done. Now on '$new_name'."
+}
+
 # Show all custom git commands and functions
 ghelp() {
   echo "── git aliases ──────────────────────────────"
@@ -57,6 +121,8 @@ ghelp() {
   echo "  gdelr     fuzzy delete remote branch"
   echo "  glog      show commits on current branch"
   echo "  grbi      interactive rebase over current branch"
+  echo "  grem      rename current branch locally and remotely"
+  echo "  gstash    multi-select files to stash with a name"
   echo "  ghelp     show this help"
 }
 
