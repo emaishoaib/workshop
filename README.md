@@ -64,6 +64,8 @@ brew install gh && gh auth login
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
 | `ghelp` | Print all available commands and aliases |
+| `grem <new-name>` | Rename current branch locally and remotely (renames in place — no history rewrite) |
+| `gstash <name>` | Multi-select changed files to stash under a name (`Tab` select, `Enter` confirm) |
 
 # `hammerspoon/`
 Lua scripts for [Hammerspoon](https://www.hammerspoon.org/) — macOS automation triggered by system events, hotkeys, and login hooks.
