@@ -119,11 +119,36 @@ ghelp() {
   echo "  gcoma     amend the last commit"
   echo "  gdel      fuzzy delete local branch"
   echo "  gdelr     fuzzy delete remote branch"
+  echo "  gfiles    fuzzy-pick a commit, list its files + status"
   echo "  glog      show commits on current branch"
+  echo "  glogp     show commits on current branch relative to parent branch"
   echo "  grbi      interactive rebase over current branch"
   echo "  grem      rename current branch locally and remotely"
   echo "  gstash    multi-select files to stash with a name"
   echo "  ghelp     show this help"
+}
+
+# Show commits on current branch relative to the branch it was branched from
+glogp() {
+  local current=$(git branch --show-current)
+
+  local parent
+  parent=$(git for-each-ref --format='%(refname:short)' refs/heads \
+    | grep -v "^$current$" \
+    | while read b; do
+        mb=$(git merge-base HEAD "$b" 2>/dev/null) || continue
+        count=$(git rev-list --count "$mb")
+        echo "$count $b"
+      done \
+    | sort -rn | head -1 | awk '{print $2}')
+
+  if [ -z "$parent" ]; then
+    echo "Could not determine parent branch"
+    return 1
+  fi
+
+  echo "(parent: $parent)"
+  git log --oneline HEAD "^$parent"
 }
 
 # Show all commits introduced on current branch
@@ -131,6 +156,25 @@ glog() {
   local default_branch
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
   git log --oneline HEAD "^origin/$default_branch"
+}
+
+# Fuzzy-pick a commit on the current branch and list its files
+gfiles() {
+  local default_branch
+  default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+
+  local sha
+  sha=$(
+    git log --oneline --color=always HEAD "^origin/$default_branch" \
+    | fzf --ansi --query="$1" \
+        --preview='git show --name-status --format= {1}' \
+        --preview-window=right:60% \
+        --prompt="Select commit > " \
+        --header="Enter: list files  |  Ctrl-C: cancel" \
+    | awk '{print $1}'
+  )
+
+  [ -n "$sha" ] && git show --name-status --format= "$sha"
 }
 
 # Interactive rebase over all commits on current branch

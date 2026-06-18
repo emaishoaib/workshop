@@ -51,7 +51,9 @@ brew install gh && gh auth login
 | `gcoma` | Amend the last commit |
 | `gdel` | Fuzzy delete local branch |
 | `gdelr` | Fuzzy delete remote branch |
+| `gfiles` | Fuzzy-pick a commit on the current branch and list the files it touched, with change status (`A`/`M`/`D`/`R`) |
 | `glog` | Show all commits introduced on current branch (oneline) |
+| `glogp` | Same as `glog` but relative to the branch this branch was branched off, rather than the default branch |
 | `git blog` | Same as `glog` but as a native git alias (requires `aliases.gitconfig` include) |
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
