@@ -92,7 +92,15 @@ Then reload Hammerspoon from the menu bar icon. From this point all changes
 are version controlled — Hammerspoon reads directly from the repo via the symlink.
 
 # `ai/`
-AI agent skills, prompts, and integrations. Includes reusable skill definitions and any tooling built around LLM workflows.
+
+Global Claude instructions, kept here so they're version-controlled and consistent across machines. `CLAUDE.md` is symlinked from `~/.claude/CLAUDE.md` so Claude Code picks it up globally and any changes are tracked in git.
+
+This is handled automatically by `setup.sh`, but to wire it up manually:
+
+```bash
+mkdir -p ~/.claude
+ln -sf ~/Documents_Public/repos_personal/workshop/ai/CLAUDE.md ~/.claude/CLAUDE.md
+```
 
 ---
 

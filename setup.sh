@@ -59,6 +59,19 @@ else
   echo "  >> added include to ~/.gitconfig"
 fi
 
+# --- Claude ---
+echo ""
+echo "Configuring ~/.claude/CLAUDE.md..."
+
+mkdir -p "$HOME/.claude"
+
+if [ -L "$HOME/.claude/CLAUDE.md" ] && [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$WORKSHOP_DIR/ai/CLAUDE.md" ]; then
+  echo "  >> already symlinked"
+else
+  ln -sf "$WORKSHOP_DIR/ai/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+  echo "  >> symlinked to $WORKSHOP_DIR/ai/CLAUDE.md"
+fi
+
 # --- Done ---
 echo ""
 echo "-- done --------------------------------------"
