@@ -72,6 +72,24 @@ else
   echo "  >> symlinked to $WORKSHOP_DIR/ai/CLAUDE.md"
 fi
 
+# --- VS Code ---
+echo ""
+echo "Configuring VS Code user settings..."
+
+VSCODE_DIR="$HOME/Library/Application Support/Code/User"
+mkdir -p "$VSCODE_DIR"
+
+for file in settings.json keybindings.json; do
+  target="$VSCODE_DIR/$file"
+  source="$WORKSHOP_DIR/vscode/$file"
+  if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+    echo "  >> $file already symlinked"
+  else
+    ln -sf "$source" "$target"
+    echo "  >> symlinked $file"
+  fi
+done
+
 # --- Done ---
 echo ""
 echo "-- done --------------------------------------"

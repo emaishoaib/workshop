@@ -91,6 +91,20 @@ ln -s ~/Documents/.../hammerspoon ~/.hammerspoon
 Then reload Hammerspoon from the menu bar icon. From this point all changes
 are version controlled — Hammerspoon reads directly from the repo via the symlink.
 
+# `vscode/`
+
+VS Code user settings, kept here so they're version-controlled and consistent across machines. Both files are symlinked into the VS Code user config directory so any changes are tracked in git.
+
+This is handled automatically by `setup.sh`, but to wire it up manually:
+
+```bash
+ln -sf ~/Documents_Public/repos_personal/workshop/vscode/settings.json \
+  ~/Library/Application\ Support/Code/User/settings.json
+
+ln -sf ~/Documents_Public/repos_personal/workshop/vscode/keybindings.json \
+  ~/Library/Application\ Support/Code/User/keybindings.json
+```
+
 # `ai/`
 
 Global Claude instructions, kept here so they're version-controlled and consistent across machines. `CLAUDE.md` is symlinked from `~/.claude/CLAUDE.md` so Claude Code picks it up globally and any changes are tracked in git.
