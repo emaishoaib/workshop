@@ -10,6 +10,7 @@ local VSCODE_IDS = {
 _G.__VSCodeKeybindState = _G.__VSCodeKeybindState or {
     hotkeyBacktick = nil,
     hotkeyH = nil,
+    mouseNav = nil,
     watcher = nil
 }
 
@@ -29,6 +30,21 @@ local function enableHotkeys()
                 app:selectMenuItem({"View", "Terminal"})
             end
         end)
+    end
+
+    -- Mouse back/forward buttons -> Ctrl+- / Ctrl+Shift+-
+    if not st.mouseNav then
+        st.mouseNav = hs.eventtap.new({hs.eventtap.event.types.otherMouseDown}, function(event)
+            local button = event:getProperty(hs.eventtap.event.properties.mouseEventButtonNumber)
+            if button == 3 then
+                hs.eventtap.keyStroke({"ctrl"}, "-", 0)
+                return true
+            elseif button == 4 then
+                hs.eventtap.keyStroke({"ctrl", "shift"}, "-", 0)
+                return true
+            end
+        end)
+        st.mouseNav:start()
     end
 
     -- Cmd+H for Find and Replace
@@ -53,6 +69,11 @@ local function disableHotkeys()
     if st.hotkeyH then
         st.hotkeyH:delete()
         st.hotkeyH = nil
+    end
+
+    if st.mouseNav then
+        st.mouseNav:stop()
+        st.mouseNav = nil
     end
 end
 
