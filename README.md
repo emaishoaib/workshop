@@ -109,6 +109,33 @@ ln -sf ~/Documents_Public/repos_personal/workshop/vscode/keybindings.json \
   ~/Library/Application\ Support/Code/User/keybindings.json
 ```
 
+## `vscode/extensions.txt`
+
+A list of installed marketplace extensions, one ID per line. Maintained automatically by the `workshop-sync` extension — any install or uninstall updates this file immediately. Commit the change to keep the repo current.
+
+`setup.sh` reads this file on a new machine and installs everything via `code --install-extension`.
+
+## `vscode/extensions/workshop-sync/`
+
+A custom VS Code extension that keeps `vscode/extensions.txt` in sync automatically. Writes the full list of non-built-in extensions on startup and on every install/uninstall.
+
+To build and install:
+
+```bash
+cd vscode/extensions/workshop-sync
+npm install
+npm run compile
+npx vsce package
+code --uninstall-extension emaishoaib.workshop-sync 2>/dev/null; true
+code --install-extension "$(ls workshop-sync-*.vsix | tail -1)"
+```
+
+Config:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `workshopSync.repoPath` | `~/Documents_Public/repos_personal/workshop` | Path to the workshop repo |
+
 ## `vscode/extensions/python-codelens/`
 
 A custom VS Code extension that shows reference counts inline above Python classes and methods — the equivalent of PyCharm's "N usages" indicator. Pylance doesn't support this natively, so this fills the gap.
