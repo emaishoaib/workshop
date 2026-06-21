@@ -90,6 +90,26 @@ for file in settings.json keybindings.json; do
   fi
 done
 
+# --- VS Code extensions ---
+echo ""
+echo "Installing VS Code extensions..."
+
+EXTENSIONS_FILE="$WORKSHOP_DIR/vscode/extensions.txt"
+
+if [ ! -f "$EXTENSIONS_FILE" ]; then
+  echo "  !! vscode/extensions.txt not found, skipping"
+else
+  while IFS= read -r ext || [ -n "$ext" ]; do
+    [ -z "$ext" ] && continue
+    if code --list-extensions | grep -qi "^$ext$"; then
+      echo "  >> $ext"
+    else
+      echo "  Installing $ext..."
+      code --install-extension "$ext" --force
+    fi
+  done < "$EXTENSIONS_FILE"
+fi
+
 # --- Done ---
 echo ""
 echo "-- done --------------------------------------"
