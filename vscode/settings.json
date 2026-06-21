@@ -11,5 +11,6 @@
     "editor.gotoLocation.multipleReferences": "goto",
     "editor.gotoLocation.multipleImplementations": "goto",
     "editor.gotoLocation.multipleTypeDefinitions": "goto",
-    "editor.codeLens": true
+    "editor.codeLens": true,
+    "workbench.colorTheme": "Islands Dark"
 }

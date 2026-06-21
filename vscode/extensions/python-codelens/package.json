@@ -1,0 +1,45 @@
+{
+  "publisher": "emaishoaib",
+  "name": "python-codelens",
+  "displayName": "Python CodeLens",
+  "description": "Show reference counts above Python classes and methods",
+  "version": "0.4.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:python"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Python CodeLens",
+      "properties": {
+        "pythonCodelens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Python reference count code lens"
+        },
+        "pythonCodelens.showZeroReferences": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show code lens even when reference count is 0"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}
