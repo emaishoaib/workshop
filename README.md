@@ -97,6 +97,30 @@ ln -sf ~/Documents_Public/repos_personal/workshop/vscode/keybindings.json \
   ~/Library/Application\ Support/Code/User/keybindings.json
 ```
 
+## `vscode/extensions/python-codelens/`
+
+A custom VS Code extension that shows reference counts inline above Python classes and methods — the equivalent of PyCharm's "N usages" indicator. Pylance doesn't support this natively, so this fills the gap.
+
+Built with the VS Code `CodeLensProvider` API: scans for `class` and `def` lines, then resolves counts lazily via Pylance's reference provider. Results are cached per symbol and invalidated on save.
+
+To build and install:
+
+```bash
+cd vscode/extensions/python-codelens
+npm install
+npm run compile
+npx vsce package
+code --uninstall-extension emaishoaib.python-codelens 2>/dev/null; true
+code --install-extension "$(ls python-codelens-*.vsix | tail -1)"
+```
+
+Config options (in `vscode/settings.json`):
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `pythonCodelens.enabled` | `true` | Toggle the extension on/off |
+| `pythonCodelens.showZeroReferences` | `false` | Show lens even when count is 0 |
+
 # `ai/`
 
 Global Claude instructions, kept here so they're version-controlled and consistent across machines. `CLAUDE.md` is symlinked from `~/.claude/CLAUDE.md` so Claude Code picks it up globally and any changes are tracked in git.
