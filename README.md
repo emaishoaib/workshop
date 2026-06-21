@@ -91,6 +91,10 @@ ln -s ~/Documents/.../hammerspoon ~/.hammerspoon
 Then reload Hammerspoon from the menu bar icon. From this point all changes
 are version controlled — Hammerspoon reads directly from the repo via the symlink.
 
+# `macos/`
+
+`manual-setup.md` documents macOS system changes that can't be automated — things like keyboard shortcut conflicts that need to be resolved in System Settings. Check this on any new machine setup.
+
 # `vscode/`
 
 VS Code user settings, kept here so they're version-controlled and consistent across machines. Both files are symlinked into the VS Code user config directory so any changes are tracked in git.
