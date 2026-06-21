@@ -1,0 +1,40 @@
+{
+  "publisher": "emaishoaib",
+  "name": "workshop-sync",
+  "displayName": "Workshop Sync",
+  "description": "Keeps the workshop repo in sync with your VS Code setup",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Workshop Sync",
+      "properties": {
+        "workshopSync.repoPath": {
+          "type": "string",
+          "default": "~/Documents_Public/repos_personal/workshop",
+          "description": "Path to your workshop repo"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^3.0.0"
+  }
+}
