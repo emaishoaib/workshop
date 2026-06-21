@@ -1,3 +1,8 @@
+---
+name: "capture"
+description: "Multi-step knowledge logging workflow in Q&A format. Triggered when the user says 'capture'. Extracts highlights as questions, maps them to notes files, reviews each Q&A pair for approval, then writes them."
+---
+
 # Capture Skill
 
 A multi-step knowledge logging workflow triggered by the word `capture` in
