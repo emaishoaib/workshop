@@ -1,0 +1,29 @@
+{
+  "skill_name": "engineer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/engineer — I want to add a dark mode toggle to the app's settings page. The toggle should persist across sessions.",
+      "expected_output": "The AI should NOT write any code. It should ask clarifying questions if needed (framework, persistence mechanism, current settings structure), then explain what the user should do first — which file to create/edit, what to put in it, why — and wait. The user implements, not the AI.",
+      "notes": "Tests the core behaviour: AI explains and guides, user implements. No code in the AI response."
+    },
+    {
+      "id": 2,
+      "prompt": "/engineer — I have this function that fetches user data:\n\n```js\nfunction getUser(id) {\n  return fetch('/api/users/' + id).then(r => r.json())\n}\n```\n\nI want to refactor it to handle errors properly and add a loading state.",
+      "expected_output": "The AI should disambiguate 'handle errors properly' and 'loading state' by asking or sharing its recommended interpretation, then explain to the user exactly how to refactor the function — what to change, why, what the result should look like. It should not write the refactored code itself unless asked.",
+      "notes": "Tests that the AI guides the user through the refactor rather than doing it for them."
+    },
+    {
+      "id": 3,
+      "prompt": "Two-turn conversation. Turn 1: /engineer — Let's build a Zustand store for managing filter state (market, product group, week) in a React app. Turn 2 (after the AI explains step 1): 'interesting, that makes sense'",
+      "expected_output": "Turn 1: AI explains what the user should create (file path, store shape, fields, setters), why Zustand over local state, and what this first step doesn't cover. No code written. Turn 2: 'Interesting, that makes sense' is not a signal to move on — AI should engage with the reaction, perhaps ask if they have questions or are ready to proceed.",
+      "notes": "Tests the approval-ambiguity rule and that the AI treats curiosity as conversation, not as a green light."
+    },
+    {
+      "id": 4,
+      "prompt": "Two-turn conversation. Turn 1: /engineer — Help me set up React Router in my app. Turn 2 (after the AI explains the first step): 'can you just write that for me'",
+      "expected_output": "Turn 2: AI writes the specific file/change it was describing (explicit delegation accepted), then hands back — explains the next step for the user to implement themselves. It does not continue writing the rest of the setup unprompted.",
+      "notes": "Tests that delegation is step-scoped. The AI takes over for one step when asked, then returns to navigator mode."
+    }
+  ]
+}
