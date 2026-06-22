@@ -88,14 +88,14 @@ prose — not as a separate references section.
 
 ### Runbooks
 When writing to `at_work_runbook.md`, always include a `*Last confirmed:
-YYYY-MM-DD*` line directly under the section heading. If the date isn't clear
+YYYY-MM-DD*` line directly at the start of an answer. If the date isn't clear
 from context, ask before writing anything. Runbook answers can be numbered
 steps — the Q&A wrapper still applies, the answer just happens to be
 procedural.
 
 ### Changelogs
 When writing to `repo_<name>_changes.md`, always include a `*YYYY-MM-DD*` line
-directly under the section heading. If the date isn't clear from context, ask
+directly at the start of an answer. If the date isn't clear from context, ask
 before writing anything.
 
 After writing, show added/updated content with a few lines of surrounding
@@ -117,3 +117,7 @@ Present the full proposal and wait for approval before writing to
 `~/Documents/notes/ai_generated/behavioral.md`.
 
 If no behavioral aspects are present, skip this step silently.
+
+You then go over each behavioral moment approved, show the exact text
+that will be written to `behavioral.md` - including surrounding
+context - and wait for explicit approval before writing anything.
