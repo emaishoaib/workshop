@@ -12,5 +12,88 @@
     "editor.gotoLocation.multipleImplementations": "goto",
     "editor.gotoLocation.multipleTypeDefinitions": "goto",
     "editor.codeLens": true,
-    "workbench.colorTheme": "Islands Dark"
+    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.colorCustomizations": {
+        "editor.background": "#1e1f22",
+        "editor.foreground": "#bcbec4",
+        "editor.lineHighlightBackground": "#26282e",
+        "editor.selectionBackground": "#214283",
+        "editor.wordHighlightBackground": "#373b3950",
+        "editor.wordHighlightStrongBackground": "#402f3350",
+        "editor.findMatchBackground": "#114957",
+        "editor.findMatchHighlightBackground": "#2d543f80",
+        "editorCursor.foreground": "#ced0d6",
+        "editorLineNumber.foreground": "#4b5059",
+        "editorLineNumber.activeForeground": "#a1a3ab",
+        "editorIndentGuide.background1": "#313438",
+        "editorIndentGuide.activeBackground1": "#666870",
+        "editorGroupHeader.tabsBackground": "#191a1c",
+        "editorGroupHeader.tabsBorder": "#191a1c",
+        "tab.border": "#191a1c",
+        "tab.inactiveBackground": "#191a1c",
+        "sideBar.background": "#191a1c",
+        "sideBar.foreground": "#bcbec4",
+        "sideBar.border": "#191a1c",
+        "sideBarSectionHeader.background": "#191a1c",
+        "activityBar.background": "#191a1c"
+    },
+    "editor.tokenColorCustomizations": {
+        "textMateRules": [
+            {
+                "scope": ["keyword", "keyword.control", "keyword.operator.word", "storage.type", "storage.modifier"],
+                "settings": { "foreground": "#cf8e6d" }
+            },
+            {
+                "scope": ["variable.language.special.self.python", "variable.language.special.cls.python"],
+                "settings": { "foreground": "#c77dbb" }
+            },
+            {
+                "scope": ["string", "string.quoted.single", "string.quoted.double", "string.quoted.triple"],
+                "settings": { "foreground": "#6aab73" }
+            },
+            {
+                "scope": ["constant.numeric"],
+                "settings": { "foreground": "#2aacb8" }
+            },
+            {
+                "scope": ["comment", "comment.line", "comment.block"],
+                "settings": { "foreground": "#7a7e85" }
+            },
+            {
+                "scope": ["entity.name.function", "support.function"],
+                "settings": { "foreground": "#56a8f5" }
+            },
+            {
+                "scope": ["meta.decorator", "entity.name.function.decorator", "support.type.python.decorator"],
+                "settings": { "foreground": "#b3ae60" }
+            },
+            {
+                "scope": ["variable.other.constant", "support.constant"],
+                "settings": { "foreground": "#c77dbb" }
+            },
+            {
+                "scope": ["string.doc", "comment.block.documentation"],
+                "settings": { "foreground": "#5f826b" }
+            }
+        ]
+    },
+    "editor.semanticTokenColorCustomizations": {
+        "rules": {
+            "function": "#56a8f5",
+            "function.declaration": "#56a8f5",
+            "function.decorator": "#b3ae60",
+            "function.defaultLibrary": "#c77dbb",
+            "method": "#57aaf7",
+            "method.declaration": "#57aaf7",
+            "decorator": "#b3ae60",
+            "property": "#c77dbb",
+            "selfParameter": "#c77dbb",
+            "parameter": "#bcbec4",
+            "parameter.keywordArgument": "#cf8e6d",
+            "variable.defaultLibrary": "#c77dbb",
+            "class": "#bcbec4",
+            "class.defaultLibrary": "#c77dbb",
+            "type": "#bcbec4"
+        }
+    }
 }
