@@ -50,7 +50,7 @@ Once the highlights are approved, go through each question one at a time. For
 each question, present:
 
 1. **The file it maps to** — look at existing markdown files in
-   `~/Documents/notes/ai_generated/`. Use broad naming — `git.md` not
+   `~/Documents_Public/notes/`. Use broad naming — `git.md` not
    `git_rebase.md`, `python.md` not `dataclass_patterns.md`. If a new file is
    needed, propose its name.
 2. **The full Q&A content** — the question (prefixed with its number from Step
@@ -114,7 +114,7 @@ For each moment found, propose:
 - A draft note with the flavor specific to that principle
 
 Present the full proposal and wait for approval before writing to
-`~/Documents/notes/ai_generated/behavioral.md`.
+`~/Documents_Public/notes/behavioral.md`.
 
 If no behavioral aspects are present, skip this step silently.
 
