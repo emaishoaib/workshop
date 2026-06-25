@@ -114,10 +114,12 @@ ghelp() {
   echo "  gcoma     amend the last commit"
   echo "  gdel      fuzzy delete local branch"
   echo "  gdel -r   fuzzy delete remote branch"
-  echo "  gfiles    fuzzy-pick a commit, list its files + status"
   echo "  glog      show commits on current branch"
   echo "  glog -p   show commits on current branch relative to parent branch"
   echo "  grbi      interactive rebase over current branch"
+  echo "  grbi -f   fuzzy-pick a commit and list its changed files"
+  echo "  grbi -c   fuzzy-pick a commit and surface its changes in VS Code"
+  echo "  grbi -d   finish observing (abort rebase + restore stash)"
   echo "  grem      rename current branch locally and remotely"
   echo "  gstash    multi-select files to stash with a name"
   echo "  ghelp     show this help"
@@ -152,29 +154,86 @@ glog() {
   fi
 }
 
-# Fuzzy-pick a commit on the current branch and list its files
-gfiles() {
-  local default_branch
-  default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
-
-  local sha
-  sha=$(
-    git log --oneline --color=always HEAD "^origin/$default_branch" \
-    | fzf --ansi --query="$1" \
-        --preview='git show --name-status --format= {1}' \
-        --preview-window=right:60% \
-        --prompt="Select commit > " \
-        --header="Enter: list files  |  Ctrl-C: cancel" \
-    | awk '{print $1}'
-  )
-
-  [ -n "$sha" ] && git show --name-status --format= "$sha"
-}
-
 # Interactive rebase over all commits on current branch
+# -f / --files:   fuzzy-pick a commit and list its changed files
+# -c / --changes: fuzzy-pick a commit and surface its changes in VS Code
+# -d / --done:    finish a -c session (abort rebase + restore stash)
 grbi() {
   local default_branch
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+
+  if [ "$1" = "-f" ] || [ "$1" = "--files" ]; then
+    local sha
+    sha=$(
+      git log --oneline --color=always HEAD "^origin/$default_branch" \
+      | fzf --ansi --query="$2" \
+          --preview='git show --name-status --format= {1}' \
+          --preview-window=right:60% \
+          --prompt="Select commit > " \
+          --header="Enter: list files  |  Ctrl-C: cancel" \
+      | awk '{print $1}'
+    )
+    [ -n "$sha" ] && git show --name-status --format= "$sha"
+    return
+  fi
+
+  if [ "$1" = "-d" ] || [ "$1" = "--done" ]; then
+    git rebase --abort
+    if [ -f ".git/GRBI_DELTA_STASHED" ]; then
+      rm -f ".git/GRBI_DELTA_STASHED"
+      git stash pop
+    fi
+    return
+  fi
+
+  if [ "$1" = "-c" ] || [ "$1" = "--changes" ]; then
+    local sha
+    sha=$(
+      git log --oneline --color=always HEAD "^origin/$default_branch" \
+      | fzf --ansi --query="$2" \
+          --preview='git show --stat --color=always {1}' \
+          --preview-window=right:60% \
+          --prompt="Select commit > " \
+          --header="Enter: observe  |  Ctrl-C: cancel" \
+      | awk '{print $1}'
+    )
+
+    [ -z "$sha" ] && return
+
+    sha=$(git rev-parse "$sha")
+    local short_sha
+    short_sha=$(git rev-parse --short "$sha")
+
+    echo ""
+    echo "Note: this starts a rebase to surface the commit's changes — intended for observation only."
+    echo "      To make edits to a commit, run 'grbi' instead."
+    echo ""
+
+    local stash_before stash_after
+    stash_before=$(git rev-parse refs/stash 2>/dev/null || echo "none")
+    git stash -u
+    stash_after=$(git rev-parse refs/stash 2>/dev/null || echo "none")
+    [ "$stash_before" != "$stash_after" ] && touch .git/GRBI_DELTA_STASHED
+
+    local seq_editor
+    seq_editor=$(mktemp)
+    cat > "$seq_editor" << SCRIPT
+#!/bin/sh
+sed -i '' "s/^pick $short_sha/edit $short_sha/" "\$1"
+SCRIPT
+    chmod +x "$seq_editor"
+
+    GIT_SEQUENCE_EDITOR="$seq_editor" git rebase -i "${sha}~1"
+    rm -f "$seq_editor"
+
+    git reset HEAD~1
+
+    echo ""
+    echo "Observing $short_sha — changed files are now visible in VS Code."
+    echo "Run 'grbi -d' or 'grbi --done' when finished."
+    return
+  fi
+
   local base
   base=$(git merge-base HEAD "origin/$default_branch")
   [ -n "$base" ] && git rebase -i "$base"
