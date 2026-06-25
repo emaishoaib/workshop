@@ -15,7 +15,7 @@ bash setup.sh
 source ~/.zshrc
 ```
 
-`setup.sh` installs prerequisites (fzf, gh), wires the shell config into `~/.zshrc`, and adds the git aliases include to `~/.gitconfig`. Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
+`setup.sh` installs prerequisites (fzf, gh) and wires the shell config into `~/.zshrc`. Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
 
 ---
 
@@ -32,7 +32,7 @@ General aliases in `aliases.zsh`:
 
 # `git/`
 
-Fzf-powered git functions and aliases. Replaces tedious branch/file picking with fuzzy search.
+Fzf-powered git functions. Replaces tedious branch/file picking with fuzzy search.
 
 ## Prerequisites
 
@@ -53,12 +53,10 @@ brew install gh && gh auth login
 | `gdel -r` | Fuzzy delete remote branch |
 | `glog` | Show all commits introduced on current branch (oneline) |
 | `glog -p` | Same as `glog` but relative to the parent branch rather than the default branch |
-| `git blog` | Same as `glog` but as a native git alias (requires `aliases.gitconfig` include) |
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `grbi -f` / `grbi --files` | Fuzzy-pick a commit and list the files it touched, with change status (`A`/`M`/`D`/`R`) |
 | `grbi -c` / `grbi --changes` | Fuzzy-pick a commit and surface its changes in VS Code for observation. Run `grbi -d` when finished. |
 | `grbi -d` / `grbi --done` | Finish a `grbi -c` session — aborts the rebase and restores any stashed changes. |
-| `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
 | `ghelp` | Print all available commands and aliases |
 | `grem <new-name>` | Rename current branch locally and remotely (renames in place — no history rewrite) |
 | `gstash <name>` | Multi-select changed files to stash under a name (`Tab` select, `Enter` confirm) |

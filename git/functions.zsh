@@ -103,11 +103,6 @@ grem() {
 
 # Show all custom git commands and functions
 ghelp() {
-  echo "── git aliases ──────────────────────────────"
-  echo "  git blog  oneline log of commits on current branch"
-  echo "  git rbi   interactive rebase from branch point"
-  echo ""
-  echo "── zsh functions ────────────────────────────"
   echo "  gcko      fuzzy checkout (local only)"
   echo "  gcko -r   fuzzy checkout (local + remote)"
   echo "  gcko -pr  checkout a PR by number or fuzzy-pick"
