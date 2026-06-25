@@ -44,21 +44,6 @@ else
   echo "  >> added source line to ~/.zshrc"
 fi
 
-# --- gitconfig ---
-echo ""
-echo "Configuring ~/.gitconfig..."
-
-GITCONFIG_LINE="path = $WORKSHOP_DIR/git/aliases.gitconfig"
-
-if grep -qF "$WORKSHOP_DIR/git/aliases.gitconfig" "$GITCONFIG" 2>/dev/null; then
-  echo "  >> already included"
-else
-  echo "" >> "$GITCONFIG"
-  echo "[include]" >> "$GITCONFIG"
-  echo "    $GITCONFIG_LINE" >> "$GITCONFIG"
-  echo "  >> added include to ~/.gitconfig"
-fi
-
 # --- Claude ---
 echo ""
 echo "Configuring ~/.claude/CLAUDE.md..."
