@@ -1,25 +1,21 @@
-# Checkout branch (all: local + remote)
-gck() {
-  local branch
-  branch=$(git branch --all | grep -v HEAD | sed 's/remotes\/origin\///' | sort -u | fzf --query="$1" --preview='git log --oneline --color=always {1} 2>/dev/null | head -10')
-  [ -n "$branch" ] && git checkout "$(echo "$branch" | tr -d '[:space:]')"
-}
-
-# Checkout branch (local only)
-gckl() {
-  local branch
-  branch=$(git branch | grep -v HEAD | fzf --query="$1" --preview='git log --oneline --color=always {1} 2>/dev/null | head -10')
-  [ -n "$branch" ] && git checkout "$(echo "$branch" | tr -d '[:space:]')"
-}
-
-# Checkout a PR by number, or fuzzy-pick from open PRs
-gckpr() {
-  if [ -n "$1" ]; then
-    gh pr checkout "$1"
+# Checkout branch (default: local only; -r: local + remote; -pr [number]: checkout PR)
+gcko() {
+  if [ "$1" = "-pr" ]; then
+    if [ -n "$2" ]; then
+      gh pr checkout "$2"
+    else
+      local pr
+      pr=$(gh pr list | fzf --preview='gh pr view {1} 2>/dev/null')
+      [ -n "$pr" ] && gh pr checkout "$(echo "$pr" | awk '{print $1}')"
+    fi
+  elif [ "$1" = "-r" ]; then
+    local branch
+    branch=$(git branch --all | grep -v HEAD | sed 's/remotes\/origin\///' | sort -u | fzf --query="$2" --preview='git log --oneline --color=always {1} 2>/dev/null | head -10')
+    [ -n "$branch" ] && git checkout "$(echo "$branch" | tr -d '[:space:]')"
   else
-    local pr
-    pr=$(gh pr list | fzf --query="$2" --preview='gh pr view {1} 2>/dev/null')
-    [ -n "$pr" ] && gh pr checkout "$(echo "$pr" | awk '{print $1}')"
+    local branch
+    branch=$(git branch | grep -v HEAD | fzf --query="$1" --preview='git log --oneline --color=always {1} 2>/dev/null | head -10')
+    [ -n "$branch" ] && git checkout "$(echo "$branch" | tr -d '[:space:]')"
   fi
 }
 
@@ -28,18 +24,17 @@ gcoma() {
   git commit --amend
 }
 
-# Delete local branch
+# Delete branch (default: local; -r: remote)
 gdel() {
-  local branch
-  branch=$(git branch | grep -v HEAD | fzf --query="$1")
-  [ -n "$branch" ] && git branch -D "$(echo "$branch" | tr -d '[:space:]')"
-}
-
-# Delete remote branch
-gdelr() {
-  local branch
-  branch=$(git branch -r | grep -v HEAD | sed 's/origin\///' | fzf --query="$1")
-  [ -n "$branch" ] && git push origin --delete "$(echo "$branch" | tr -d '[:space:]')"
+  if [ "$1" = "-r" ]; then
+    local branch
+    branch=$(git branch -r | grep -v HEAD | sed 's/origin\///' | fzf --query="$2")
+    [ -n "$branch" ] && git push origin --delete "$(echo "$branch" | tr -d '[:space:]')"
+  else
+    local branch
+    branch=$(git branch | grep -v HEAD | fzf --query="$1")
+    [ -n "$branch" ] && git branch -D "$(echo "$branch" | tr -d '[:space:]')"
+  fi
 }
 
 # Multi-select files to stash with a name
@@ -113,49 +108,48 @@ ghelp() {
   echo "  git rbi   interactive rebase from branch point"
   echo ""
   echo "── zsh functions ────────────────────────────"
-  echo "  gck       fuzzy checkout (local + remote)"
-  echo "  gckl      fuzzy checkout (local only)"
-  echo "  gckpr     checkout a PR by number or fuzzy-pick"
+  echo "  gcko      fuzzy checkout (local only)"
+  echo "  gcko -r   fuzzy checkout (local + remote)"
+  echo "  gcko -pr  checkout a PR by number or fuzzy-pick"
   echo "  gcoma     amend the last commit"
   echo "  gdel      fuzzy delete local branch"
-  echo "  gdelr     fuzzy delete remote branch"
+  echo "  gdel -r   fuzzy delete remote branch"
   echo "  gfiles    fuzzy-pick a commit, list its files + status"
   echo "  glog      show commits on current branch"
-  echo "  glogp     show commits on current branch relative to parent branch"
+  echo "  glog -p   show commits on current branch relative to parent branch"
   echo "  grbi      interactive rebase over current branch"
   echo "  grem      rename current branch locally and remotely"
   echo "  gstash    multi-select files to stash with a name"
   echo "  ghelp     show this help"
 }
 
-# Show commits on current branch relative to the branch it was branched from
-glogp() {
-  local current=$(git branch --show-current)
-
-  local parent
-  parent=$(git for-each-ref --format='%(refname:short)' refs/heads \
-    | grep -v "^$current$" \
-    | while read b; do
-        mb=$(git merge-base HEAD "$b" 2>/dev/null) || continue
-        count=$(git rev-list --count "$mb")
-        echo "$count $b"
-      done \
-    | sort -rn | head -1 | awk '{print $2}')
-
-  if [ -z "$parent" ]; then
-    echo "Could not determine parent branch"
-    return 1
-  fi
-
-  echo "(parent: $parent)"
-  git log --oneline HEAD "^$parent"
-}
-
-# Show all commits introduced on current branch
+# Show all commits introduced on current branch (default: vs default branch; -p: vs parent branch)
 glog() {
-  local default_branch
-  default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
-  git log --oneline HEAD "^origin/$default_branch"
+  if [ "$1" = "-p" ]; then
+    local current=$(git branch --show-current)
+
+    local parent
+    parent=$(git for-each-ref --format='%(refname:short)' refs/heads \
+      | grep -v "^$current$" \
+      | while read b; do
+          mb=$(git merge-base HEAD "$b" 2>/dev/null) || continue
+          count=$(git rev-list --count "$mb")
+          echo "$count $b"
+        done \
+      | sort -rn | head -1 | awk '{print $2}')
+
+    if [ -z "$parent" ]; then
+      echo "Could not determine parent branch"
+      return 1
+    fi
+
+    echo "(parent: $parent)"
+    git log --oneline HEAD "^$parent"
+  else
+    local default_branch
+    default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+    git log --oneline HEAD "^origin/$default_branch"
+  fi
 }
 
 # Fuzzy-pick a commit on the current branch and list its files

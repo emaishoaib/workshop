@@ -1,5 +1,5 @@
 ---
-name: "capture"
+name: capture
 description: "Multi-step knowledge logging workflow in Q&A format. Triggered when the user says 'capture'. Extracts highlights as questions, maps them to notes files, reviews each Q&A pair for approval, then writes them."
 ---
 
@@ -32,9 +32,25 @@ the order things happened to come up in conversation.
 
 ## Step 1 — Extract highlights
 
-Scan the full conversation. Identify key things learned, decided, clarified,
-or discovered — patterns, techniques, tools, concepts, workflows. Don't
-summarise the task itself; focus on reusable knowledge.
+Scan the full conversation chronologically from the beginning, not from the
+end. Recency bias is a common failure mode — earlier decisions often carry more
+knowledge density than later iterative work. A long sequence of small iterative
+changes (e.g. "make it wider", "apply", "a bit more") should carry far less
+weight than a single message where an architectural or technical decision was
+made and reasoned through.
+
+For each of the following categories, ask: did anything meaningful happen here?
+
+- Architectural and design decisions
+- Debugging, errors, and fixes
+- Tool and library configuration gotchas
+- CLI and command patterns
+- Workflow and process patterns
+- Layout and UI patterns
+- Concepts introduced or clarified
+
+Identify key things learned, decided, clarified, or discovered across all of
+these. Don't summarise the task itself; focus on reusable knowledge.
 
 For each highlight, draft it immediately as a question — not a declarative
 statement. The question should reflect how the understanding was reached,
