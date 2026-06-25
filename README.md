@@ -53,15 +53,15 @@ brew install gh && gh auth login
 
 | Command | Description |
 |---------|-------------|
-| `gck` | Fuzzy checkout — all branches (local + remote) |
-| `gckl` | Fuzzy checkout — local branches only |
-| `gckpr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
+| `gcko` | Fuzzy checkout — local branches only |
+| `gcko -r` | Fuzzy checkout — all branches (local + remote) |
+| `gcko -pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `gcoma` | Amend the last commit |
 | `gdel` | Fuzzy delete local branch |
-| `gdelr` | Fuzzy delete remote branch |
+| `gdel -r` | Fuzzy delete remote branch |
 | `gfiles` | Fuzzy-pick a commit on the current branch and list the files it touched, with change status (`A`/`M`/`D`/`R`) |
 | `glog` | Show all commits introduced on current branch (oneline) |
-| `glogp` | Same as `glog` but relative to the branch this branch was branched off, rather than the default branch |
+| `glog -p` | Same as `glog` but relative to the parent branch rather than the default branch |
 | `git blog` | Same as `glog` but as a native git alias (requires `aliases.gitconfig` include) |
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
