@@ -51,11 +51,13 @@ brew install gh && gh auth login
 | `gcoma` | Amend the last commit |
 | `gdel` | Fuzzy delete local branch |
 | `gdel -r` | Fuzzy delete remote branch |
-| `gfiles` | Fuzzy-pick a commit on the current branch and list the files it touched, with change status (`A`/`M`/`D`/`R`) |
 | `glog` | Show all commits introduced on current branch (oneline) |
 | `glog -p` | Same as `glog` but relative to the parent branch rather than the default branch |
 | `git blog` | Same as `glog` but as a native git alias (requires `aliases.gitconfig` include) |
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
+| `grbi -f` / `grbi --files` | Fuzzy-pick a commit and list the files it touched, with change status (`A`/`M`/`D`/`R`) |
+| `grbi -c` / `grbi --changes` | Fuzzy-pick a commit and surface its changes in VS Code for observation. Run `grbi -d` when finished. |
+| `grbi -d` / `grbi --done` | Finish a `grbi -c` session — aborts the rebase and restores any stashed changes. |
 | `git rbi` | Same as `grbi` but as a native git alias (requires `aliases.gitconfig` include) |
 | `ghelp` | Print all available commands and aliases |
 | `grem <new-name>` | Rename current branch locally and remotely (renames in place — no history rewrite) |
