@@ -110,7 +110,7 @@ ghelp() {
   echo "  gdel      fuzzy delete local branch"
   echo "  gdel -r   fuzzy delete remote branch"
   echo "  glog      show commits on current branch"
-  echo "  glog -p   show commits on current branch relative to parent branch"
+  echo "  glog -p   show commits not in the branch it is based off (parent)"
   echo "  grbi      interactive rebase over current branch"
   echo "  grbi -f   fuzzy-pick a commit and list its changed files"
   echo "  grbi -c   fuzzy-pick a commit and surface its changes in VS Code"
