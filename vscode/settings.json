@@ -12,7 +12,7 @@
     "editor.gotoLocation.multipleImplementations": "goto",
     "editor.gotoLocation.multipleTypeDefinitions": "goto",
     "editor.codeLens": true,
-    "workbench.colorTheme": "Default Dark Modern",
+    "workbench.colorTheme": "Dark Modern",
     "workbench.colorCustomizations": {
         "editor.background": "#1e1f22",
         "editor.foreground": "#bcbec4",
