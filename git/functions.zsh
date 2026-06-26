@@ -116,6 +116,7 @@ ghelp() {
   echo "  grbi -c   fuzzy-pick a commit and surface its changes in VS Code"
   echo "  grbi -d   finish observing (abort rebase + restore stash)"
   echo "  grbc      continue an in-progress rebase"
+  echo "  grbo      fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  grem      rename current branch locally and remotely"
   echo "  gstash    multi-select files to stash with a name"
   echo "  ghelp     show this help"
@@ -148,6 +149,33 @@ glog() {
     default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
     git log --oneline HEAD "^origin/$default_branch"
   fi
+}
+
+# Rebase current branch onto a fuzzy-picked local branch from a fuzzy-picked fork point SHA
+grbo() {
+  local current
+  current=$(git branch --show-current)
+
+  local onto
+  onto=$(git branch | grep -v HEAD | sed 's/^[ *]*//' | grep -v "^$current$" \
+    | fzf \
+        --prompt="Rebase onto > " \
+        --header="Select branch to rebase onto")
+  [ -z "$onto" ] && return
+  onto=$(echo "$onto" | tr -d '[:space:]')
+
+  local sha
+  sha=$(git log --oneline HEAD "^$onto" \
+    | fzf \
+        --no-sort \
+        --reverse \
+        --prompt="Fork point > " \
+        --header="Select fork point — commits after this will be replayed onto '$onto'" \
+    | awk '{print $1}')
+  [ -z "$sha" ] && return
+
+  echo "Rebasing onto '$onto' from $sha..."
+  git rebase --onto "$onto" "$sha"
 }
 
 # Interactive rebase over all commits on current branch
