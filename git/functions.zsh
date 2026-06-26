@@ -115,6 +115,7 @@ ghelp() {
   echo "  grbi -f   fuzzy-pick a commit and list its changed files"
   echo "  grbi -c   fuzzy-pick a commit and surface its changes in VS Code"
   echo "  grbi -d   finish observing (abort rebase + restore stash)"
+  echo "  grbc      continue an in-progress rebase"
   echo "  grem      rename current branch locally and remotely"
   echo "  gstash    multi-select files to stash with a name"
   echo "  ghelp     show this help"
@@ -232,5 +233,10 @@ SCRIPT
   local base
   base=$(git merge-base HEAD "origin/$default_branch")
   [ -n "$base" ] && git rebase -i "$base"
+}
+
+# Continue an in-progress rebase
+grbc() {
+  git rebase --continue
 }
 
