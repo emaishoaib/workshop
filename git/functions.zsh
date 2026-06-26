@@ -1,3 +1,8 @@
+# List all local branches
+gbra() {
+  git branch
+}
+
 # Checkout branch (default: local only; -r: local + remote; -pr [number]: checkout PR)
 gcko() {
   if [ "$1" = "-pr" ]; then
@@ -103,6 +108,7 @@ grem() {
 
 # Show all custom git commands and functions
 ghelp() {
+  echo "  gbra      list all local branches"
   echo "  gcko      fuzzy checkout (local only)"
   echo "  gcko -r   fuzzy checkout (local + remote)"
   echo "  gcko -pr  checkout a PR by number or fuzzy-pick"

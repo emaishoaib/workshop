@@ -53,6 +53,7 @@ brew install gh && gh auth login
 
 | Command | Description |
 |---------|-------------|
+| `gbra` | List all local branches |
 | `gcko` | Fuzzy checkout — local branches only |
 | `gcko -r` | Fuzzy checkout — all branches (local + remote) |
 | `gcko -pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
