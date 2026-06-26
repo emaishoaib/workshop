@@ -46,12 +46,13 @@ brew install gh && gh auth login
 | Command | Description |
 |---------|-------------|
 | `gbra` | List all local branches |
+| `gbra -d` / `gbra --delete` | Fuzzy delete local branch |
+| `gbra -dr` / `gbra --remote-delete` | Fuzzy delete remote branch |
+| `gbra -re <new-name>` / `gbra --rename <new-name>` | Rename current branch locally and remotely |
 | `gcko` | Fuzzy checkout — local branches only |
 | `gcko -r` | Fuzzy checkout — all branches (local + remote) |
 | `gcko -pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `gcoma` | Amend the last commit |
-| `gdel` | Fuzzy delete local branch |
-| `gdel -r` | Fuzzy delete remote branch |
 | `glog` | Show all commits introduced on current branch (oneline) |
 | `glog -p` | Same as `glog` but relative to the parent branch rather than the default branch |
 | `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
@@ -61,7 +62,6 @@ brew install gh && gh auth login
 | `grbc` | Continue an in-progress rebase (`git rebase --continue`) |
 | `grbo` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `ghelp` | Print all available commands and aliases |
-| `grem <new-name>` | Rename current branch locally and remotely (renames in place — no history rewrite) |
 | `gstash <name>` | Multi-select changed files to stash under a name (`Tab` select, `Enter` confirm) |
 
 # `hammerspoon/`

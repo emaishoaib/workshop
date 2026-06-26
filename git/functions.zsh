@@ -1,6 +1,56 @@
-# List all local branches
+# List, delete, or rename branches
+# (no args): list local branches
+# -d / --delete: fuzzy delete local branch
+# -dr / --remote-delete: fuzzy delete remote branch
+# -re / --rename <new-name>: rename current branch locally and remotely
 gbra() {
-  git branch
+  if [ "$1" = "-d" ] || [ "$1" = "--delete" ]; then
+    local branch
+    branch=$(git branch | grep -v HEAD | fzf --query="$2")
+    [ -n "$branch" ] && git branch -D "$(echo "$branch" | tr -d '[:space:]')"
+
+  elif [ "$1" = "-dr" ] || [ "$1" = "--remote-delete" ]; then
+    local branch
+    branch=$(git branch -r | grep -v HEAD | sed 's/origin\///' | fzf --query="$2")
+    [ -n "$branch" ] && git push origin --delete "$(echo "$branch" | tr -d '[:space:]')"
+
+  elif [ "$1" = "-re" ] || [ "$1" = "--rename" ]; then
+    local new_name="$2"
+    if [ -z "$new_name" ]; then
+      echo "Usage: gbra -re <new-branch-name>"
+      return 1
+    fi
+
+    local old_name
+    old_name=$(git rev-parse --abbrev-ref HEAD)
+
+    if [ "$old_name" = "HEAD" ]; then
+      echo "Error: not on a branch (detached HEAD state)"
+      return 1
+    fi
+
+    if [ "$old_name" = "$new_name" ]; then
+      echo "Error: new name is the same as the current branch name"
+      return 1
+    fi
+
+    echo "Renaming '$old_name' → '$new_name'..."
+
+    git branch -m "$new_name"
+    git push origin "$new_name" --set-upstream
+
+    if git ls-remote --exit-code --heads origin "$old_name" > /dev/null 2>&1; then
+      git push origin --delete "$old_name"
+      echo "Deleted remote branch '$old_name'"
+    else
+      echo "(No remote branch '$old_name' to delete)"
+    fi
+
+    echo "Done. Now on '$new_name'."
+
+  else
+    git branch
+  fi
 }
 
 # Checkout branch (default: local only; -r: local + remote; -pr [number]: checkout PR)
@@ -27,19 +77,6 @@ gcko() {
 # Amend the last commit
 gcoma() {
   git commit --amend
-}
-
-# Delete branch (default: local; -r: remote)
-gdel() {
-  if [ "$1" = "-r" ]; then
-    local branch
-    branch=$(git branch -r | grep -v HEAD | sed 's/origin\///' | fzf --query="$2")
-    [ -n "$branch" ] && git push origin --delete "$(echo "$branch" | tr -d '[:space:]')"
-  else
-    local branch
-    branch=$(git branch | grep -v HEAD | fzf --query="$1")
-    [ -n "$branch" ] && git branch -D "$(echo "$branch" | tr -d '[:space:]')"
-  fi
 }
 
 # Multi-select files to stash with a name
@@ -70,51 +107,16 @@ gstash() {
   echo "Stashed as: '$name'"
 }
 
-# Rename current branch locally and remotely
-grem() {
-  local new_name="$1"
-  if [ -z "$new_name" ]; then
-    echo "Usage: grem <new-branch-name>"
-    return 1
-  fi
-
-  local old_name
-  old_name=$(git rev-parse --abbrev-ref HEAD)
-
-  if [ "$old_name" = "HEAD" ]; then
-    echo "Error: not on a branch (detached HEAD state)"
-    return 1
-  fi
-
-  if [ "$old_name" = "$new_name" ]; then
-    echo "Error: new name is the same as the current branch name"
-    return 1
-  fi
-
-  echo "Renaming '$old_name' → '$new_name'..."
-
-  git branch -m "$new_name"
-  git push origin "$new_name" --set-upstream
-
-  if git ls-remote --exit-code --heads origin "$old_name" > /dev/null 2>&1; then
-    git push origin --delete "$old_name"
-    echo "Deleted remote branch '$old_name'"
-  else
-    echo "(No remote branch '$old_name' to delete)"
-  fi
-
-  echo "Done. Now on '$new_name'."
-}
-
 # Show all custom git commands and functions
 ghelp() {
   echo "  gbra      list all local branches"
+  echo "  gbra -d   fuzzy delete local branch"
+  echo "  gbra -dr  fuzzy delete remote branch"
+  echo "  gbra -re  rename current branch locally and remotely"
   echo "  gcko      fuzzy checkout (local only)"
   echo "  gcko -r   fuzzy checkout (local + remote)"
   echo "  gcko -pr  checkout a PR by number or fuzzy-pick"
   echo "  gcoma     amend the last commit"
-  echo "  gdel      fuzzy delete local branch"
-  echo "  gdel -r   fuzzy delete remote branch"
   echo "  glog      show commits on current branch"
   echo "  glog -p   show commits not in the branch it is based off (parent)"
   echo "  grbi      interactive rebase over current branch"
@@ -123,7 +125,6 @@ ghelp() {
   echo "  grbi -d   finish observing (abort rebase + restore stash)"
   echo "  grbc      continue an in-progress rebase"
   echo "  grbo      fuzzy-pick a branch and fork point (sha), then rebase onto it"
-  echo "  grem      rename current branch locally and remotely"
   echo "  gstash    multi-select files to stash with a name"
   echo "  ghelp     show this help"
 }
