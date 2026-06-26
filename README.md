@@ -58,6 +58,7 @@ brew install gh && gh auth login
 | `grbi -c` / `grbi --changes` | Fuzzy-pick a commit and surface its changes in VS Code for observation. Run `grbi -d` when finished. |
 | `grbi -d` / `grbi --done` | Finish a `grbi -c` session — aborts the rebase and restores any stashed changes. |
 | `grbc` | Continue an in-progress rebase (`git rebase --continue`) |
+| `grbo` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `ghelp` | Print all available commands and aliases |
 | `grem <new-name>` | Rename current branch locally and remotely (renames in place — no history rewrite) |
 | `gstash <name>` | Multi-select changed files to stash under a name (`Tab` select, `Enter` confirm) |
