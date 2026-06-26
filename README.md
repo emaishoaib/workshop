@@ -55,12 +55,11 @@ brew install gh && gh auth login
 | `gcoma` | Amend the last commit |
 | `glog` | Show all commits introduced on current branch (oneline) |
 | `glog -p` | Same as `glog` but relative to the parent branch rather than the default branch |
-| `grbi` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
-| `grbi -f` / `grbi --files` | Fuzzy-pick a commit and list the files it touched, with change status (`A`/`M`/`D`/`R`) |
-| `grbi -c` / `grbi --changes` | Fuzzy-pick a commit and surface its changes in VS Code for observation. Run `grbi -d` when finished. |
-| `grbi -d` / `grbi --done` | Finish a `grbi -c` session — aborts the rebase and restores any stashed changes. |
-| `grbc` | Continue an in-progress rebase (`git rebase --continue`) |
-| `grbo` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
+| `grbe -i` / `grbe --interactive` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
+| `grbe -p` / `grbe --pick` | Fuzzy-pick a commit with a changed-files preview; on select, surfaces changes in VS Code for observation |
+| `grbe -c` / `grbe --continue` | Continue an in-progress rebase (`git rebase --continue`) |
+| `grbe -d` / `grbe --done` | Finish a `grbe -p` session — aborts the rebase and restores any stashed changes |
+| `grbe -o` / `grbe --onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `ghelp` | Print all available commands and aliases |
 | `gstash <name>` | Multi-select changed files to stash under a name (`Tab` select, `Enter` confirm) |
 
