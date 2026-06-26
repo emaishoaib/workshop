@@ -119,12 +119,11 @@ ghelp() {
   echo "  gcoma     amend the last commit"
   echo "  glog      show commits on current branch"
   echo "  glog -p   show commits not in the branch it is based off (parent)"
-  echo "  grbi      interactive rebase over current branch"
-  echo "  grbi -f   fuzzy-pick a commit and list its changed files"
-  echo "  grbi -c   fuzzy-pick a commit and surface its changes in VS Code"
-  echo "  grbi -d   finish observing (abort rebase + restore stash)"
-  echo "  grbc      continue an in-progress rebase"
-  echo "  grbo      fuzzy-pick a branch and fork point (sha), then rebase onto it"
+  echo "  grbe -i   interactive rebase over current branch"
+  echo "  grbe -p   fuzzy-pick a commit, preview files, surface in VS Code on select"
+  echo "  grbe -c   continue an in-progress rebase"
+  echo "  grbe -d   finish observing (abort rebase + restore stash)"
+  echo "  grbe -o   fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  gstash    multi-select files to stash with a name"
   echo "  ghelp     show this help"
 }
@@ -158,77 +157,34 @@ glog() {
   fi
 }
 
-# Rebase current branch onto a fuzzy-picked local branch from a fuzzy-picked fork point SHA
-grbo() {
-  local current
-  current=$(git branch --show-current)
-
-  local onto
-  onto=$(git branch | grep -v HEAD | sed 's/^[ *]*//' | grep -v "^$current$" \
-    | fzf \
-        --prompt="Rebase onto > " \
-        --header="Select branch to rebase onto")
-  [ -z "$onto" ] && return
-  onto=$(echo "$onto" | tr -d '[:space:]')
-
-  local sha
-  sha=$(git log --oneline HEAD "^$onto" \
-    | fzf \
-        --no-sort \
-        --reverse \
-        --prompt="Fork point > " \
-        --header="Select fork point — commits after this will be replayed onto '$onto'" \
-    | awk '{print $1}')
-  [ -z "$sha" ] && return
-
-  echo "Rebasing onto '$onto' from $sha..."
-  git rebase --onto "$onto" "$sha"
-}
-
-# Interactive rebase over all commits on current branch
-# -f / --files:   fuzzy-pick a commit and list its changed files
-# -c / --changes: fuzzy-pick a commit and surface its changes in VS Code
-# -d / --done:    finish a -c session (abort rebase + restore stash)
-grbi() {
+# Rebase helpers
+# -i / --interactive: interactive rebase over current branch
+# -p / --pick:        fuzzy-pick a commit, preview changed files, surface in VS Code on select
+# -c / --continue:    continue an in-progress rebase
+# -d / --done:        finish a -p session (abort rebase + restore stash)
+# -o / --onto:        fuzzy-pick a branch and fork point (sha), then rebase onto it
+grbe() {
   local default_branch
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
 
-  if [ "$1" = "-f" ] || [ "$1" = "--files" ]; then
+  if [ "$1" = "-i" ] || [ "$1" = "--interactive" ]; then
+    local base
+    base=$(git merge-base HEAD "origin/$default_branch")
+    [ -n "$base" ] && git rebase -i "$base"
+    return
+  fi
+
+  if [ "$1" = "-p" ] || [ "$1" = "--pick" ]; then
     local sha
     sha=$(
       git log --oneline --color=always HEAD "^origin/$default_branch" \
-      | fzf --ansi --query="$2" \
+      | fzf --ansi --no-sort --query="$2" \
           --preview='git show --name-status --format= {1}' \
           --preview-window=right:60% \
           --prompt="Select commit > " \
-          --header="Enter: list files  |  Ctrl-C: cancel" \
+          --header="Enter: observe in VS Code  |  Ctrl-C: cancel" \
       | awk '{print $1}'
     )
-    [ -n "$sha" ] && git show --name-status --format= "$sha"
-    return
-  fi
-
-  if [ "$1" = "-d" ] || [ "$1" = "--done" ]; then
-    git rebase --abort
-    if [ -f ".git/GRBI_DELTA_STASHED" ]; then
-      rm -f ".git/GRBI_DELTA_STASHED"
-      git stash pop
-    fi
-    return
-  fi
-
-  if [ "$1" = "-c" ] || [ "$1" = "--changes" ]; then
-    local sha
-    sha=$(
-      git log --oneline --color=always HEAD "^origin/$default_branch" \
-      | fzf --ansi --query="$2" \
-          --preview='git show --stat --color=always {1}' \
-          --preview-window=right:60% \
-          --prompt="Select commit > " \
-          --header="Enter: observe  |  Ctrl-C: cancel" \
-      | awk '{print $1}'
-    )
-
     [ -z "$sha" ] && return
 
     sha=$(git rev-parse "$sha")
@@ -237,14 +193,14 @@ grbi() {
 
     echo ""
     echo "Note: this starts a rebase to surface the commit's changes — intended for observation only."
-    echo "      To make edits to a commit, run 'grbi' instead."
+    echo "      To make edits to a commit, run 'grbe -i' instead."
     echo ""
 
     local stash_before stash_after
     stash_before=$(git rev-parse refs/stash 2>/dev/null || echo "none")
     git stash -u
     stash_after=$(git rev-parse refs/stash 2>/dev/null || echo "none")
-    [ "$stash_before" != "$stash_after" ] && touch .git/GRBI_DELTA_STASHED
+    [ "$stash_before" != "$stash_after" ] && touch .git/GRBE_DELTA_STASHED
 
     local seq_editor
     seq_editor=$(mktemp)
@@ -261,17 +217,49 @@ SCRIPT
 
     echo ""
     echo "Observing $short_sha — changed files are now visible in VS Code."
-    echo "Run 'grbi -d' or 'grbi --done' when finished."
+    echo "Run 'grbe -d' or 'grbe --done' when finished."
     return
   fi
 
-  local base
-  base=$(git merge-base HEAD "origin/$default_branch")
-  [ -n "$base" ] && git rebase -i "$base"
-}
+  if [ "$1" = "-c" ] || [ "$1" = "--continue" ]; then
+    git rebase --continue
+    return
+  fi
 
-# Continue an in-progress rebase
-grbc() {
-  git rebase --continue
+  if [ "$1" = "-d" ] || [ "$1" = "--done" ]; then
+    git rebase --abort
+    if [ -f ".git/GRBE_DELTA_STASHED" ]; then
+      rm -f ".git/GRBE_DELTA_STASHED"
+      git stash pop
+    fi
+    return
+  fi
+
+  if [ "$1" = "-o" ] || [ "$1" = "--onto" ]; then
+    local current
+    current=$(git branch --show-current)
+
+    local onto
+    onto=$(git branch | grep -v HEAD | sed 's/^[ *]*//' | grep -v "^$current$" \
+      | fzf \
+          --prompt="Rebase onto > " \
+          --header="Select branch to rebase onto")
+    [ -z "$onto" ] && return
+    onto=$(echo "$onto" | tr -d '[:space:]')
+
+    local sha
+    sha=$(git log --oneline HEAD "^$onto" \
+      | fzf \
+          --no-sort \
+          --reverse \
+          --prompt="Fork point > " \
+          --header="Select fork point — commits after this will be replayed onto '$onto'" \
+      | awk '{print $1}')
+    [ -z "$sha" ] && return
+
+    echo "Rebasing onto '$onto' from $sha..."
+    git rebase --onto "$onto" "$sha"
+    return
+  fi
 }
 
