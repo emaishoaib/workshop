@@ -118,7 +118,7 @@ ghelp() {
   echo "  gcko -pr  checkout a PR by number or fuzzy-pick"
   echo "  gcoma     amend the last commit"
   echo "  glog      show commits on current branch"
-  echo "  glog -p   show commits not in the branch it is based off (parent)"
+  echo "  glog -c   fuzzy-pick a branch to compare against (parent branch labelled)"
   echo "  grbe -i   interactive rebase over current branch"
   echo "  grbe -p   fuzzy-pick a commit, preview files, surface in VS Code on select"
   echo "  grbe -c   continue an in-progress rebase"
@@ -128,28 +128,22 @@ ghelp() {
   echo "  ghelp     show this help"
 }
 
-# Show all commits introduced on current branch (default: vs default branch; -p: vs parent branch)
+# Show all commits introduced on current branch (default: vs default branch; -c: fuzzy-pick a branch to compare against)
 glog() {
-  if [ "$1" = "-p" ]; then
-    local current=$(git branch --show-current)
+  if [ "$1" = "-c" ] || [ "$1" = "--compare" ]; then
+    local current
+    current=$(git branch --show-current)
 
-    local parent
-    parent=$(git for-each-ref --format='%(refname:short)' refs/heads \
-      | grep -v "^$current$" \
-      | while read b; do
-          mb=$(git merge-base HEAD "$b" 2>/dev/null) || continue
-          count=$(git rev-list --count "$mb")
-          echo "$count $b"
-        done \
-      | sort -rn | head -1 | awk '{print $2}')
+    local selected
+    selected=$(git branch | grep -v HEAD | sed 's/^[ *]*//' | grep -v "^$current$" \
+      | fzf \
+          --prompt="Compare against > " \
+          --header="Select branch — commits on $current not in selection will be shown")
+    [ -z "$selected" ] && return
 
-    if [ -z "$parent" ]; then
-      echo "Could not determine parent branch"
-      return 1
-    fi
+    selected=$(echo "$selected" | tr -d '[:space:]')
+    git log --oneline HEAD "^$selected"
 
-    echo "(parent: $parent)"
-    git log --oneline HEAD "^$parent"
   else
     local default_branch
     default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
