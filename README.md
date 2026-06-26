@@ -54,7 +54,7 @@ brew install gh && gh auth login
 | `gcko -pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `gcoma` | Amend the last commit |
 | `glog` | Show all commits introduced on current branch (oneline) |
-| `glog -p` | Same as `glog` but relative to the parent branch rather than the default branch |
+| `glog -c` / `glog --compare` | Fuzzy-pick a local branch to compare against; shows commits on current branch not in the selection. Inferred parent branch is labelled in the list. |
 | `grbe -i` / `grbe --interactive` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `grbe -p` / `grbe --pick` | Fuzzy-pick a commit with a changed-files preview; on select, surfaces changes in VS Code for observation |
 | `grbe -c` / `grbe --continue` | Continue an in-progress rebase (`git rebase --continue`) |
