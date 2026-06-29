@@ -15,7 +15,7 @@ bash setup.sh
 source ~/.zshrc
 ```
 
-`setup.sh` installs prerequisites (fzf, gh) and wires the shell config into `~/.zshrc`. Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
+`setup.sh` installs prerequisites (fzf, gh, pypdf, send2trash) and wires the shell config into `~/.zshrc`. Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
 
 ---
 
@@ -29,6 +29,7 @@ General aliases in `aliases.zsh`:
 |-------|-------------|
 | `czsh` | Open `~/.zshrc` in VS Code |
 | `rzsh` | Reload `~/.zshrc` |
+| `mergeinv` | Merge paired invoice PDFs in the current directory (see `scripts/`) |
 
 # `git/`
 
@@ -164,6 +165,35 @@ This is handled automatically by `setup.sh`, but to wire it up manually:
 mkdir -p ~/.claude
 ln -sf ~/Documents_Public/repos_personal/workshop/ai/CLAUDE.md ~/.claude/CLAUDE.md
 ```
+
+# `scripts/`
+
+Standalone utility scripts for day-to-day macOS tasks. Each script is self-contained and runnable directly from the terminal.
+
+Dependencies are managed by `setup.sh` — no manual `pip install` needed on a fresh machine.
+
+## `merge_invoices.py`
+
+Merges paired PDF files that follow this naming convention:
+
+```
+20250121 - Amazon Echo Dot.pdf           ← order details
+20250121 - Amazon Echo Dot Invoice.pdf   ← invoice
+```
+
+For each matched pair it appends the invoice pages to the order-details PDF, overwrites the base file in place, and moves the separate invoice file to Trash.
+
+```bash
+# Preview without making changes
+python scripts/merge_invoices.py ~/path/to/pdfs --dry-run
+
+# Merge all pairs in a directory
+python scripts/merge_invoices.py ~/path/to/pdfs
+```
+
+The `mergeinv` shell alias runs this against the current directory for quick use after opening a folder via `⌘⇧T`.
+
+Requires: `pypdf`, `send2trash` (both installed by `setup.sh`)
 
 ---
 
