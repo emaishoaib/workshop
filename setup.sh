@@ -95,6 +95,26 @@ else
   done < "$EXTENSIONS_FILE"
 fi
 
+# --- Scripts ---
+echo ""
+echo "Configuring scripts/..."
+
+chmod +x "$WORKSHOP_DIR"/scripts/*.py 2>/dev/null && echo "  >> chmod +x scripts/*.py"
+
+if ! python3 -c "import pypdf" &>/dev/null 2>&1; then
+  echo "  Installing pypdf..."
+  pip3 install pypdf --quiet
+else
+  echo "  >> pypdf"
+fi
+
+if ! python3 -c "import send2trash" &>/dev/null 2>&1; then
+  echo "  Installing send2trash..."
+  pip3 install send2trash --quiet
+else
+  echo "  >> send2trash"
+fi
+
 # --- Done ---
 echo ""
 echo "-- done --------------------------------------"
