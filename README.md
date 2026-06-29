@@ -9,8 +9,8 @@ A personal collection of macOS automation scripts, AI agent tooling, and anythin
 # New machine setup
 
 ```bash
-git clone git@github.com:mustafa.shoaib/workshop.git ~/Documents_Public/repos_personal/workshop
-cd ~/Documents_Public/repos_personal/workshop
+git clone git@github.com:mustafa.shoaib/workshop.git ~/Documents_Public/repos/workshop
+cd ~/Documents_Public/repos/workshop
 bash setup.sh
 source ~/.zshrc
 ```
@@ -105,10 +105,10 @@ VS Code user settings, kept here so they're version-controlled and consistent ac
 This is handled automatically by `setup.sh`, but to wire it up manually:
 
 ```bash
-ln -sf ~/Documents_Public/repos_personal/workshop/vscode/settings.json \
+ln -sf ~/Documents_Public/repos/workshop/vscode/settings.json \
   ~/Library/Application\ Support/Code/User/settings.json
 
-ln -sf ~/Documents_Public/repos_personal/workshop/vscode/keybindings.json \
+ln -sf ~/Documents_Public/repos/workshop/vscode/keybindings.json \
   ~/Library/Application\ Support/Code/User/keybindings.json
 ```
 
@@ -137,7 +137,7 @@ Config:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `workshopSync.repoPath` | `~/Documents_Public/repos_personal/workshop` | Path to the workshop repo |
+| `workshopSync.repoPath` | `~/Documents_Public/repos/workshop` | Path to the workshop repo |
 
 ## `vscode/extensions/python-codelens/`
 
@@ -175,7 +175,7 @@ This is handled automatically by `setup.sh`, but to wire it up manually:
 
 ```bash
 mkdir -p ~/.claude
-ln -sf ~/Documents_Public/repos_personal/workshop/ai/CLAUDE.md ~/.claude/CLAUDE.md
+ln -sf ~/Documents_Public/repos/workshop/ai/CLAUDE.md ~/.claude/CLAUDE.md
 ```
 
 # `scripts/`
