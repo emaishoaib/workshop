@@ -75,6 +75,14 @@ brew install gh && gh auth login
 # `hammerspoon/`
 Lua scripts for [Hammerspoon](https://www.hammerspoon.org/) — macOS automation triggered by system events, hotkeys, and login hooks.
 
+## Hotkeys
+
+| Shortcut | Context | Description |
+|----------|---------|-------------|
+| `⌘⇧T` | Finder frontmost | Open current Finder folder in iTerm2 (if installed) or Terminal |
+| `⌘↩` | Finder frontmost | Open selected item (`cmd+o`) |
+| `⌃L` | Global | Lock screen |
+
 ## Setup
 
 Move your existing Hammerspoon config into the repo, then symlink so Hammerspoon
