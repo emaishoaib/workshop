@@ -6,3 +6,6 @@ alias rzsh='source ~/.zshrc'
 
 # Merge paired invoice PDFs in the current directory
 alias mergeinv='python3 ~/Documents_Public/repos/workshop/scripts/merge_invoices.py .'
+
+# GitHub + SSH helper
+alias gtools='gtools'

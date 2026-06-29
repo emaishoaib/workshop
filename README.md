@@ -69,8 +69,20 @@ brew install gh && gh auth login
 | `grbe -c` / `grbe --continue` | Continue an in-progress rebase (`git rebase --continue`) |
 | `grbe -d` / `grbe --done` | Finish a `grbe -p` session — aborts the rebase and restores any stashed changes |
 | `grbe -o` / `grbe --onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
-| `ghelp` | Print all available commands and aliases |
 | `gstash <name>` | Multi-select changed files to stash under a name (`Tab` select, `Enter` confirm) |
+| `gtools` | Interactive GitHub + SSH helper — fzf-pick to create repos, list repos, clone, manage SSH keys |
+| `ghelp` | Print all available commands and aliases |
+
+## `gtools`
+
+Interactive GitHub + SSH helper. Run `gtools` from anywhere — fzf picks the action, then walks through any inputs:
+
+- **Create new repo** — pick personal or org account, name, visibility, optional README, optional local clone
+- **List repos** — pick account, shows name, visibility, description, and URL
+- **Clone a repo** — pick account, fzf over all repos, clone into a named directory
+- **List SSH keys** — shows all public keys with fingerprints, agent-loaded keys, and optionally adds a key to the agent
+
+Requires `gh` (installed by `setup.sh`).
 
 # `hammerspoon/`
 Lua scripts for [Hammerspoon](https://www.hammerspoon.org/) — macOS automation triggered by system events, hotkeys, and login hooks.
@@ -188,9 +200,7 @@ ln -sf ~/Documents_Public/repos/workshop/ai/CLAUDE.md ~/.claude/CLAUDE.md
 
 # `scripts/`
 
-Standalone utility scripts for day-to-day macOS tasks. Each script is self-contained and runnable directly from the terminal.
-
-Dependencies are managed by `setup.sh` — no manual `pip install` needed on a fresh machine.
+Standalone utility scripts for day-to-day tasks. All scripts in this directory are on `$PATH` automatically via `shell/init.zsh`, so they're available as commands in every shell session after `setup.sh` runs.
 
 ## `merge_invoices.py`
 

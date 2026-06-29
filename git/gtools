@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+# gtools — Interactive GitHub + SSH helper
+# Requires: gh (GitHub CLI), git, fzf, ssh-keygen
+# Usage: gtools
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
+
+require() {
+  for cmd in "$@"; do
+    command -v "$cmd" &>/dev/null || { echo -e "${RED}Missing: $cmd${RESET}"; exit 1; }
+  done
+}
+
+ok()   { echo -e "${GREEN}✔ $1${RESET}"; }
+warn() { echo -e "${YELLOW}⚠ $1${RESET}"; }
+err()  { echo -e "${RED}✖ $1${RESET}"; }
+ask()  { echo -en "${BOLD}$1${RESET} " >&2; read -r REPLY; echo "$REPLY"; }
+
+# ── pick_account: fzf over personal account + orgs ────────────────────────────
+pick_account() {
+  local me
+  me=$(gh api /user --jq '.login')
+
+  local orgs=()
+  mapfile -t orgs < <(gh api /user/memberships/orgs --jq '.[].organization.login' 2>/dev/null)
+
+  local options=("$me (personal)")
+  options+=("${orgs[@]}")
+
+  local selection
+  selection=$(printf '%s\n' "${options[@]}" \
+    | fzf --prompt="Account > " --header="Select account — personal or org" --no-sort) \
+    || { warn "Cancelled."; return 1; }
+
+  [ -z "$selection" ] && { warn "No account selected."; return 1; }
+
+  # Strip " (personal)" suffix → returns the bare login
+  echo "${selection% (personal)}"
+}
+
+# ── create_repo ───────────────────────────────────────────────────────────────
+create_repo() {
+  echo ""
+  local account
+  account=$(pick_account) || return
+
+  local name
+  name=$(ask "Repo name:")
+  [ -z "$name" ] && { err "Name required."; return; }
+
+  local desc
+  desc=$(ask "Description (optional):")
+
+  local vis_label
+  vis_label=$(printf "Private\nPublic" \
+    | fzf --prompt="Visibility > " --header="Select visibility" --no-sort) \
+    || { warn "Cancelled."; return; }
+
+  local vis
+  case "$vis_label" in
+    Public)  vis="--public"  ;;
+    Private) vis="--private" ;;
+    *) err "No visibility selected."; return ;;
+  esac
+
+  local init
+  init=$(ask "Initialise with README? [y/N]:")
+
+  local args=("$vis" "--description" "$desc")
+  [[ "$(echo "$init" | tr '[:upper:]' '[:lower:]')" == "y" ]] && args+=("--add-readme")
+
+  # personal → just name; org → org/name
+  local me
+  me=$(gh api /user --jq '.login')
+  local full_name
+  [[ "$account" == "$me" ]] && full_name="$name" || full_name="$account/$name"
+
+  gh repo create "$full_name" "${args[@]}"
+  ok "Repo '$full_name' created."
+
+  local clone_now
+  clone_now=$(ask "Clone it locally now? [y/N]:")
+  if [[ "$(echo "$clone_now" | tr '[:upper:]' '[:lower:]')" == "y" ]]; then
+    local dest
+    dest=$(ask "Clone into directory (default: $name):")
+    dest="${dest:-$name}"
+    gh repo clone "$full_name" "$dest"
+    ok "Cloned into ./$dest"
+  fi
+}
+
+# ── list_repos ────────────────────────────────────────────────────────────────
+list_repos() {
+  echo ""
+  local account
+  account=$(pick_account) || return
+
+  local limit
+  limit=$(ask "How many to show? [default: 30]:")
+  limit="${limit:-30}"
+
+  gh repo list "$account" \
+    --limit "$limit" \
+    --json name,visibility,description,url \
+    --jq '.[] | "\(.name)\t[\(.visibility)]\t\(.description // "-")\t\(.url)"' \
+    | column -t -s $'\t'
+}
+
+# ── clone_repo ────────────────────────────────────────────────────────────────
+clone_repo() {
+  echo ""
+  local account
+  account=$(pick_account) || return
+
+  echo "Fetching repos for $account…"
+  local repo
+  repo=$(gh repo list "$account" --limit 100 --json nameWithOwner --jq '.[].nameWithOwner' \
+    | fzf --prompt="Repo > " --header="Select repo to clone" --no-sort) \
+    || { warn "Cancelled."; return; }
+
+  [ -z "$repo" ] && { warn "No repo selected."; return; }
+
+  local dest
+  dest=$(ask "Clone into directory (default: ${repo##*/}):")
+  dest="${dest:-${repo##*/}}"
+
+  gh repo clone "$repo" "$dest"
+  ok "Cloned '$repo' into ./$dest"
+}
+
+# ── list_ssh_keys ─────────────────────────────────────────────────────────────
+list_ssh_keys() {
+  echo ""
+  local key_dir="$HOME/.ssh"
+  [ ! -d "$key_dir" ] && { warn "~/.ssh directory not found."; return; }
+
+  echo -e "${BOLD}Public keys:${RESET}"
+  shopt -s nullglob
+  local pub_keys=("$key_dir"/*.pub)
+
+  if [ ${#pub_keys[@]} -eq 0 ]; then
+    warn "No .pub files found in ~/.ssh"
+  else
+    for k in "${pub_keys[@]}"; do
+      local fp
+      fp=$(ssh-keygen -lf "$k" 2>/dev/null || echo "unreadable")
+      echo -e "  ${GREEN}${k/$HOME/\~}${RESET}"
+      echo    "    Fingerprint : $fp"
+      echo    "    Content     : $(cat "$k")"
+      echo    ""
+    done
+  fi
+
+  echo -e "${BOLD}ssh-agent loaded keys:${RESET}"
+  ssh-add -l 2>/dev/null || warn "No keys in agent (or agent not running)."
+
+  echo ""
+  local add_now
+  add_now=$(ask "Add a key to ssh-agent now? [y/N]:")
+  if [[ "$(echo "$add_now" | tr '[:upper:]' '[:lower:]')" == "y" ]]; then
+    shopt -s nullglob
+    local all=("$key_dir"/id_* "$key_dir"/github_* "$key_dir"/work_*)
+    local priv=()
+    for k in "${all[@]}"; do
+      [[ "$k" != *.pub ]] && [[ -f "$k" ]] && priv+=("$k")
+    done
+
+    if [ ${#priv[@]} -eq 0 ]; then
+      warn "No private keys detected in ~/.ssh"
+      return
+    fi
+
+    local pick
+    pick=$(printf '%s\n' "${priv[@]/$HOME/\~}" \
+      | fzf --prompt="Key > " --header="Select key to add to agent" --no-sort) \
+      || { warn "Cancelled."; return; }
+
+    [ -z "$pick" ] && { warn "No key selected."; return; }
+    ssh-add "${pick/\~/$HOME}"
+    ok "Key added to agent."
+  fi
+}
+
+# ── main ──────────────────────────────────────────────────────────────────────
+require gh git fzf ssh-keygen
+
+action=$(printf "Create new repo\nList repos\nClone a repo\nList SSH keys" \
+  | fzf --prompt="Action > " --header="gtools" --no-sort) \
+  || exit 0
+
+case "$action" in
+  "Create new repo") create_repo   ;;
+  "List repos")      list_repos    ;;
+  "Clone a repo")    clone_repo    ;;
+  "List SSH keys")   list_ssh_keys ;;
+esac
