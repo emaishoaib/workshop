@@ -163,6 +163,10 @@ Config options (in `vscode/settings.json`):
 | `pythonCodelens.enabled` | `true` | Toggle the extension on/off |
 | `pythonCodelens.showZeroReferences` | `false` | Show lens even when count is 0 |
 
+## Markdown behaviour
+
+`formatOnSave` and `trimTrailingWhitespace` are both disabled for Markdown via a `[markdown]` language override in `settings.json`. This prevents Prettier (or any active Markdown formatter) from reflowing content on every `⌘S`, and preserves intentional trailing spaces (which are valid line-break syntax in Markdown).
+
 # `ai/`
 
 Global Claude instructions, kept here so they're version-controlled and consistent across machines. `CLAUDE.md` is symlinked from `~/.claude/CLAUDE.md` so Claude Code picks it up globally and any changes are tracked in git.

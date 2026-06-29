@@ -7,6 +7,10 @@
     "explorer.confirmDragAndDrop": false,
     "files.trimTrailingWhitespace": true,
     "editor.formatOnSave": true,
+    "[markdown]": {
+        "editor.formatOnSave": false,
+        "files.trimTrailingWhitespace": false
+    },
     "editor.gotoLocation.multipleDefinitions": "goto",
     "editor.gotoLocation.multipleReferences": "goto",
     "editor.gotoLocation.multipleImplementations": "goto",
