@@ -74,39 +74,6 @@ gcko() {
   fi
 }
 
-# Amend the last commit
-gcoma() {
-  git commit --amend
-}
-
-# Multi-select files to stash with a name
-gstash() {
-  local name="$1"
-  if [ -z "$name" ]; then
-    echo "Usage: gstash <stash-name>"
-    return 1
-  fi
-
-  local files
-  files=$(
-    { git diff --name-only; git diff --cached --name-only; git ls-files --others --exclude-standard; } \
-    | sort -u \
-    | fzf -m \
-        --preview='git diff HEAD -- {} 2>/dev/null | head -50' \
-        --preview-window=right:60% \
-        --prompt="Select files to stash > " \
-        --header="Tab: select/deselect  |  Enter: confirm  |  Ctrl-C: cancel"
-  )
-
-  if [ -z "$files" ]; then
-    echo "No files selected."
-    return 0
-  fi
-
-  git stash push -u -m "$name" -- ${(f)files}
-  echo "Stashed as: '$name'"
-}
-
 # Show all custom git commands and functions
 ghelp() {
   echo "  gbra      list all local branches"
@@ -116,7 +83,6 @@ ghelp() {
   echo "  gcko      fuzzy checkout (local only)"
   echo "  gcko -r   fuzzy checkout (local + remote)"
   echo "  gcko -pr  checkout a PR by number or fuzzy-pick"
-  echo "  gcoma     amend the last commit"
   echo "  glog      show commits on current branch"
   echo "  glog -b   fuzzy-pick a branch to compare against (parent branch labelled)"
   echo "  glog -N   show last N commits (e.g. glog -5)"
@@ -128,7 +94,6 @@ ghelp() {
   echo "  grbe -c   continue an in-progress rebase"
   echo "  grbe -d   finish observing (abort rebase + restore stash)"
   echo "  grbe -o   fuzzy-pick a branch and fork point (sha), then rebase onto it"
-  echo "  gstash    multi-select files to stash with a name"
   echo "  ghelp     show this help"
 }
 

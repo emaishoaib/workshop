@@ -61,7 +61,6 @@ brew install gh && gh auth login
 | `gcko` | Fuzzy checkout — local branches only |
 | `gcko -r` | Fuzzy checkout — all branches (local + remote) |
 | `gcko -pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
-| `gcoma` | Amend the last commit |
 | `glog` | Show all commits introduced on current branch (oneline) |
 | `glog -b` / `glog --branch` | Fuzzy-pick a local branch to compare against; shows commits on current branch not in the selection |
 | `glog -N` | Show last N commits, e.g. `glog -5` |
@@ -73,7 +72,6 @@ brew install gh && gh auth login
 | `grbe -c` / `grbe --continue` | Continue an in-progress rebase (`git rebase --continue`) |
 | `grbe -d` / `grbe --done` | Finish a `grbe -p` session — aborts the rebase and restores any stashed changes |
 | `grbe -o` / `grbe --onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
-| `gstash <name>` | Multi-select changed files to stash under a name (`Tab` select, `Enter` confirm) |
 | `gtools` | Interactive GitHub + SSH helper — fzf-pick to create repos, list repos, clone, manage SSH keys |
 | `ghelp` | Print all available commands and aliases |
 
