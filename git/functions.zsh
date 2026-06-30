@@ -1,18 +1,23 @@
 # List, delete, or rename branches
 # (no args): list local branches
-# -d / --delete: fuzzy delete local branch
-# -dr / --remote-delete: fuzzy delete remote branch
+# -d / --delete: fuzzy delete local branch; prompts to also delete remote if it exists
 # -re / --rename <new-name>: rename current branch locally and remotely
 gbra() {
   if [ "$1" = "-d" ] || [ "$1" = "--delete" ]; then
     local branch
     branch=$(git branch | grep -v HEAD | fzf --query="$2")
-    [ -n "$branch" ] && git branch -D "$(echo "$branch" | tr -d '[:space:]')"
+    [ -z "$branch" ] && return
+    branch=$(echo "$branch" | tr -d '[:space:]')
+    git branch -D "$branch"
 
-  elif [ "$1" = "-dr" ] || [ "$1" = "--remote-delete" ]; then
-    local branch
-    branch=$(git branch -r | grep -v HEAD | sed 's/origin\///' | fzf --query="$2")
-    [ -n "$branch" ] && git push origin --delete "$(echo "$branch" | tr -d '[:space:]')"
+    if git ls-remote --exit-code --heads origin "$branch" > /dev/null 2>&1; then
+      echo -n "Remote branch '$branch' exists. Delete it too? [y/N] "
+      read -r answer
+      if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+        git push origin --delete "$branch"
+        echo "Deleted remote branch '$branch'."
+      fi
+    fi
 
   elif [ "$1" = "-re" ] || [ "$1" = "--rename" ]; then
     local new_name="$2"
@@ -77,8 +82,7 @@ gcko() {
 # Show all custom git commands and functions
 ghelp() {
   echo "  gbra      list all local branches"
-  echo "  gbra -d   fuzzy delete local branch"
-  echo "  gbra -dr  fuzzy delete remote branch"
+  echo "  gbra -d   fuzzy delete local branch (prompts to delete remote if it exists)"
   echo "  gbra -re  rename current branch locally and remotely"
   echo "  gcko      fuzzy checkout (local only)"
   echo "  gcko -r   fuzzy checkout (local + remote)"
