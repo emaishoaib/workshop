@@ -1,4 +1,4 @@
-# Delete or rename branches
+# git branch passthrough; custom subcommands:
 # delete: fuzzy delete local branch; prompts to also delete remote if it exists
 # rename <new-name>: rename current branch locally and remotely
 gbra() {
@@ -52,6 +52,8 @@ gbra() {
 
     echo "Done. Now on '$new_name'."
 
+  else
+    git branch "$@"
   fi
 }
 
@@ -78,6 +80,7 @@ gcko() {
 
 # Show all custom git commands and functions
 ghelp() {
+  echo "  gbra                     git branch"
   echo "  gbra delete              fuzzy delete local branch (prompts to delete remote if it exists)"
   echo "  gbra rename              rename current branch locally and remotely"
   echo "  gcko                     fuzzy checkout (local only)"
@@ -85,13 +88,10 @@ ghelp() {
   echo "  gcko pr                  checkout a PR by number or fuzzy-pick"
   echo "  glog                     show commits on current branch (or -N for last N, e.g. glog -5)"
   echo "  glog branch              fuzzy-pick a branch to compare against"
-  echo "  grbe int                 interactive rebase over current branch (or int -N, e.g. grbe int -5)"
-  echo "  grbe int branch          fuzzy-pick a branch, interactive rebase commits not in that branch"
-  echo "  grbe int preview         fuzzy-pick a commit, preview files, surface in VS Code on select (or int preview -N)"
-  echo "  grbe int branch preview  fuzzy-pick a branch, then fuzzy-pick a commit from it, surface in VS Code"
+  echo "  grbe                     git rebase"
+  echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
+  echo "  grbe branch preview      fuzzy-pick a branch, then fuzzy-pick a commit to observe in VS Code"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
-  echo "  grbe continue            continue an in-progress rebase"
-  echo "  grbe done                finish observing (abort rebase + restore stash)"
   echo "  ghelp                    show this help"
 }
 
@@ -122,18 +122,16 @@ glog() {
 }
 
 # Rebase helpers
-# int:                 interactive rebase over current branch; accepts -N to rebase last N commits
-# int branch:          fuzzy-pick a branch, interactive rebase commits not in that branch
-# int preview:         fuzzy-pick a commit, preview changed files, surface in VS Code; accepts -N to limit picker
-# int branch preview:  fuzzy-pick a branch, then fuzzy-pick a commit from those commits, surface in VS Code
-# continue:            continue an in-progress rebase
-# done:                finish an int preview session (abort rebase + restore stash)
-# onto:                fuzzy-pick a branch and fork point (sha), then rebase onto it
+# (no args):       git rebase
+# branch:          fuzzy-pick a branch, interactive rebase commits not in that branch
+# branch preview:  fuzzy-pick a branch, then fuzzy-pick a commit to observe in VS Code
+# done:            finish a branch preview session (abort rebase + restore stash)
+# onto:            fuzzy-pick a branch and fork point (sha), then rebase onto it
 grbe() {
   local default_branch
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
 
-  if [ "$1" = "int" ] && [ "$2" = "branch" ] && [ "$3" = "preview" ]; then
+  if [ "$1" = "branch" ] && [ "$2" = "preview" ]; then
     local current
     current=$(git branch --show-current)
 
@@ -163,7 +161,7 @@ grbe() {
 
     echo ""
     echo "Note: this starts a rebase to surface the commit's changes — intended for observation only."
-    echo "      To make edits to a commit, run 'grbe int' instead."
+    echo "      To make edits to a commit, run 'grbe branch' instead."
     echo ""
 
     local stash_before stash_after
@@ -191,7 +189,7 @@ SCRIPT
     return
   fi
 
-  if [ "$1" = "int" ] && [ "$2" = "branch" ]; then
+  if [ "$1" = "branch" ]; then
     local current
     current=$(git branch --show-current)
 
@@ -206,78 +204,6 @@ SCRIPT
     local base
     base=$(git merge-base HEAD "$selected")
     [ -n "$base" ] && git rebase -i "$base"
-    return
-  fi
-
-  if [ "$1" = "int" ] && [ "$2" = "preview" ]; then
-    local log_args query
-    if [[ "$3" =~ ^-[0-9]+$ ]]; then
-      log_args="$3"
-      query="$4"
-    else
-      log_args="HEAD \"^origin/$default_branch\""
-      query="$3"
-    fi
-
-    local sha
-    sha=$(
-      eval "git log --oneline --color=always $log_args" \
-      | fzf --ansi --no-sort --query="$query" \
-          --preview='git show --name-status --format= {1}' \
-          --preview-window=right:60% \
-          --prompt="Select commit > " \
-          --header="Enter: observe in VS Code  |  Ctrl-C: cancel" \
-      | awk '{print $1}'
-    )
-    [ -z "$sha" ] && return
-
-    sha=$(git rev-parse "$sha")
-    local short_sha
-    short_sha=$(git rev-parse --short "$sha")
-
-    echo ""
-    echo "Note: this starts a rebase to surface the commit's changes — intended for observation only."
-    echo "      To make edits to a commit, run 'grbe int' instead."
-    echo ""
-
-    local stash_before stash_after
-    stash_before=$(git rev-parse refs/stash 2>/dev/null || echo "none")
-    git stash -u
-    stash_after=$(git rev-parse refs/stash 2>/dev/null || echo "none")
-    [ "$stash_before" != "$stash_after" ] && touch .git/GRBE_DELTA_STASHED
-
-    local seq_editor
-    seq_editor=$(mktemp)
-    cat > "$seq_editor" << SCRIPT
-#!/bin/sh
-sed -i '' "s/^pick $short_sha/edit $short_sha/" "\$1"
-SCRIPT
-    chmod +x "$seq_editor"
-
-    GIT_SEQUENCE_EDITOR="$seq_editor" git rebase -i "${sha}~1"
-    rm -f "$seq_editor"
-
-    git reset HEAD~1
-
-    echo ""
-    echo "Observing $short_sha — changed files are now visible in VS Code."
-    echo "Run 'grbe done' when finished."
-    return
-  fi
-
-  if [ "$1" = "int" ]; then
-    if [[ "$2" =~ ^-[0-9]+$ ]]; then
-      git rebase -i "HEAD~${2#-}"
-    else
-      local base
-      base=$(git merge-base HEAD "origin/$default_branch")
-      [ -n "$base" ] && git rebase -i "$base"
-    fi
-    return
-  fi
-
-  if [ "$1" = "continue" ]; then
-    git rebase --continue
     return
   fi
 
@@ -316,4 +242,6 @@ SCRIPT
     git rebase --onto "$onto" "${sha}~1"
     return
   fi
+
+  git rebase "$@"
 }
