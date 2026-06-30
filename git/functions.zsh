@@ -128,10 +128,10 @@ glog() {
 # Rebase helpers
 # -i / --interactive:          interactive rebase over current branch; accepts -N to rebase last N commits
 # -ib / --interactive-branch:  fuzzy-pick a branch, interactive rebase commits not in that branch
-# -p / --pick:        fuzzy-pick a commit, preview changed files, surface in VS Code on select; accepts -N to limit picker to last N commits
-# -c / --continue:    continue an in-progress rebase
-# -d / --done:        finish a -p session (abort rebase + restore stash)
-# -o / --onto:        fuzzy-pick a branch and fork point (sha), then rebase onto it
+# -p / --pick:                 fuzzy-pick a commit, preview changed files, surface in VS Code on select; accepts -N to limit picker to last N commits
+# -c / --continue:             continue an in-progress rebase
+# -d / --done:                 finish a -p session (abort rebase + restore stash)
+# -o / --onto:                 fuzzy-pick a branch and fork point (sha), then rebase onto it
 grbe() {
   local default_branch
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
@@ -262,4 +262,3 @@ SCRIPT
     return
   fi
 }
-
