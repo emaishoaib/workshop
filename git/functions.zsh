@@ -120,6 +120,7 @@ ghelp() {
   echo "  glog      show commits on current branch"
   echo "  glog -c   fuzzy-pick a branch to compare against (parent branch labelled)"
   echo "  grbe -i   interactive rebase over current branch"
+  echo "  grbe -ib  fuzzy-pick a branch, interactive rebase commits not in that branch"
   echo "  grbe -p   fuzzy-pick a commit, preview files, surface in VS Code on select"
   echo "  grbe -c   continue an in-progress rebase"
   echo "  grbe -d   finish observing (abort rebase + restore stash)"
@@ -153,6 +154,7 @@ glog() {
 
 # Rebase helpers
 # -i / --interactive: interactive rebase over current branch
+# -ib / --interactive-branch: fuzzy-pick a branch, interactive rebase commits not in that branch
 # -p / --pick:        fuzzy-pick a commit, preview changed files, surface in VS Code on select
 # -c / --continue:    continue an in-progress rebase
 # -d / --done:        finish a -p session (abort rebase + restore stash)
@@ -164,6 +166,24 @@ grbe() {
   if [ "$1" = "-i" ] || [ "$1" = "--interactive" ]; then
     local base
     base=$(git merge-base HEAD "origin/$default_branch")
+    [ -n "$base" ] && git rebase -i "$base"
+    return
+  fi
+
+  if [ "$1" = "-ib" ] || [ "$1" = "--interactive-branch" ]; then
+    local current
+    current=$(git branch --show-current)
+
+    local selected
+    selected=$(git branch | grep -v HEAD | sed 's/^[ *]*//' | grep -v "^$current$" \
+      | fzf \
+          --prompt="Compare against > " \
+          --header="Select branch — commits on $current not in selection will be rebased")
+    [ -z "$selected" ] && return
+
+    selected=$(echo "$selected" | tr -d '[:space:]')
+    local base
+    base=$(git merge-base HEAD "$selected")
     [ -n "$base" ] && git rebase -i "$base"
     return
   fi
