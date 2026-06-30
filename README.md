@@ -55,8 +55,7 @@ brew install gh && gh auth login
 | Command | Description |
 |---------|-------------|
 | `gbra` | List all local branches |
-| `gbra -d` / `gbra --delete` | Fuzzy delete local branch |
-| `gbra -dr` / `gbra --remote-delete` | Fuzzy delete remote branch |
+| `gbra -d` / `gbra --delete` | Fuzzy delete local branch; if the branch also exists remotely, prompts to delete it there too |
 | `gbra -re <new-name>` / `gbra --rename <new-name>` | Rename current branch locally and remotely |
 | `gcko` | Fuzzy checkout — local branches only |
 | `gcko -r` | Fuzzy checkout — all branches (local + remote) |
