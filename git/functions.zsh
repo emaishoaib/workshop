@@ -91,8 +91,6 @@ ghelp() {
   echo "  grbe -ib  fuzzy-pick a branch, interactive rebase commits not in that branch"
   echo "  grbe -p   fuzzy-pick a commit, preview files, surface in VS Code on select"
   echo "  grbe -p -N  limit picker to last N commits (e.g. grbe -p -5)"
-  echo "  grbe -c   continue an in-progress rebase"
-  echo "  grbe -d   finish observing (abort rebase + restore stash)"
   echo "  grbe -o   fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  ghelp     show this help"
 }
