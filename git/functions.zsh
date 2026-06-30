@@ -119,9 +119,12 @@ ghelp() {
   echo "  gcoma     amend the last commit"
   echo "  glog      show commits on current branch"
   echo "  glog -b   fuzzy-pick a branch to compare against (parent branch labelled)"
+  echo "  glog -N   show last N commits (e.g. glog -5)"
   echo "  grbe -i   interactive rebase over current branch"
+  echo "  grbe -i -N  interactive rebase over last N commits (e.g. grbe -i -5)"
   echo "  grbe -ib  fuzzy-pick a branch, interactive rebase commits not in that branch"
   echo "  grbe -p   fuzzy-pick a commit, preview files, surface in VS Code on select"
+  echo "  grbe -p -N  limit picker to last N commits (e.g. grbe -p -5)"
   echo "  grbe -c   continue an in-progress rebase"
   echo "  grbe -d   finish observing (abort rebase + restore stash)"
   echo "  grbe -o   fuzzy-pick a branch and fork point (sha), then rebase onto it"
@@ -129,7 +132,7 @@ ghelp() {
   echo "  ghelp     show this help"
 }
 
-# Show all commits introduced on current branch (default: vs default branch; -b: fuzzy-pick a branch to compare against)
+# Show all commits introduced on current branch (default: vs default branch; -b: fuzzy-pick a branch to compare against; -N: last N commits)
 glog() {
   if [ "$1" = "-b" ] || [ "$1" = "--branch" ]; then
     local current
@@ -145,6 +148,9 @@ glog() {
     selected=$(echo "$selected" | tr -d '[:space:]')
     git log --oneline HEAD "^$selected"
 
+  elif [[ "$1" =~ ^-[0-9]+$ ]]; then
+    git log --oneline "$1"
+
   else
     local default_branch
     default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
@@ -153,9 +159,9 @@ glog() {
 }
 
 # Rebase helpers
-# -i / --interactive: interactive rebase over current branch
-# -ib / --interactive-branch: fuzzy-pick a branch, interactive rebase commits not in that branch
-# -p / --pick:        fuzzy-pick a commit, preview changed files, surface in VS Code on select
+# -i / --interactive:          interactive rebase over current branch; accepts -N to rebase last N commits
+# -ib / --interactive-branch:  fuzzy-pick a branch, interactive rebase commits not in that branch
+# -p / --pick:        fuzzy-pick a commit, preview changed files, surface in VS Code on select; accepts -N to limit picker to last N commits
 # -c / --continue:    continue an in-progress rebase
 # -d / --done:        finish a -p session (abort rebase + restore stash)
 # -o / --onto:        fuzzy-pick a branch and fork point (sha), then rebase onto it
@@ -164,9 +170,13 @@ grbe() {
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
 
   if [ "$1" = "-i" ] || [ "$1" = "--interactive" ]; then
-    local base
-    base=$(git merge-base HEAD "origin/$default_branch")
-    [ -n "$base" ] && git rebase -i "$base"
+    if [[ "$2" =~ ^-[0-9]+$ ]]; then
+      git rebase -i "HEAD~${2#-}"
+    else
+      local base
+      base=$(git merge-base HEAD "origin/$default_branch")
+      [ -n "$base" ] && git rebase -i "$base"
+    fi
     return
   fi
 
@@ -189,10 +199,19 @@ grbe() {
   fi
 
   if [ "$1" = "-p" ] || [ "$1" = "--pick" ]; then
+    local log_args query
+    if [[ "$2" =~ ^-[0-9]+$ ]]; then
+      log_args="$2"
+      query="$3"
+    else
+      log_args="HEAD \"^origin/$default_branch\""
+      query="$2"
+    fi
+
     local sha
     sha=$(
-      git log --oneline --color=always HEAD "^origin/$default_branch" \
-      | fzf --ansi --no-sort --query="$2" \
+      eval "git log --oneline --color=always $log_args" \
+      | fzf --ansi --no-sort --query="$query" \
           --preview='git show --name-status --format= {1}' \
           --preview-window=right:60% \
           --prompt="Select commit > " \
