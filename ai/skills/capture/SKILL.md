@@ -70,8 +70,7 @@ each question, present:
    `git_rebase.md`, `python.md` not `dataclass_patterns.md`. If a new file is
    needed, propose its name.
 2. **The full Q&A content** — the question (prefixed with its number from Step
-   1) and its complete answer, exactly as it will be written. If a highlight
-   expands into multiple Q&A pairs, show them all in sequence here.
+   1) and its complete answer, exactly as it will be written.
 
 Wait for approval on each question before moving to the next. I may edit the
 content or the file mapping at this stage. If I request changes, apply them and
@@ -95,9 +94,10 @@ bash commands where they add clarity. Write as a personal reference note, not
 documentation. Useful both for your own recall and as quick context for a
 future AI.
 
-Where a concept produces multiple Q&A pairs, write them in sequence under the
-same section — do not scatter them. The order should build understanding
-progressively: why it exists → deeper reasoning → concrete application.
+Apply the amnesia test to every question: it must be fully self-contained —
+name the system, library, command, or concept explicitly. "Why does this fail?"
+fails; "Why does FastAPI silently swallow dependency errors raised as
+HTTPExceptions?" passes.
 
 If any links were shared that are relevant, inline them naturally within the
 prose — not as a separate references section.
