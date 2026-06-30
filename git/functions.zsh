@@ -84,7 +84,7 @@ ghelp() {
   echo "  gcko -r   fuzzy checkout (local + remote)"
   echo "  gcko -pr  checkout a PR by number or fuzzy-pick"
   echo "  glog      show commits on current branch"
-  echo "  glog -b   fuzzy-pick a branch to compare against (parent branch labelled)"
+  echo "  glog -p   fuzzy-pick a branch to compare against"
   echo "  glog -N   show last N commits (e.g. glog -5)"
   echo "  grbe -i   interactive rebase over current branch"
   echo "  grbe -i -N  interactive rebase over last N commits (e.g. grbe -i -5)"
@@ -95,9 +95,9 @@ ghelp() {
   echo "  ghelp     show this help"
 }
 
-# Show all commits introduced on current branch (default: vs default branch; -b: fuzzy-pick a branch to compare against; -N: last N commits)
+# Show all commits introduced on current branch (default: vs default branch; -p: fuzzy-pick a branch to compare against; -N: last N commits)
 glog() {
-  if [ "$1" = "-b" ] || [ "$1" = "--branch" ]; then
+  if [ "$1" = "-p" ] || [ "$1" = "--pick" ]; then
     local current
     current=$(git branch --show-current)
 

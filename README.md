@@ -62,11 +62,11 @@ brew install gh && gh auth login
 | `gcko -r` | Fuzzy checkout — all branches (local + remote) |
 | `gcko -pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `glog` | Show all commits introduced on current branch (oneline) |
-| `glog -b` / `glog --branch` | Fuzzy-pick a local branch to compare against; shows commits on current branch not in the selection |
+| `glog -p` / `glog --pick` | Fuzzy-pick a local branch to compare against; shows commits on current branch not in the selection |
 | `glog -N` | Show last N commits, e.g. `glog -5` |
 | `grbe -i` / `grbe --interactive` | Interactive rebase over all commits on current branch (auto-detects `main`/`master`) |
 | `grbe -i -N` | Interactive rebase over last N commits, e.g. `grbe -i -5` |
-| `grbe -ib` / `grbe --interactive-branch` | Fuzzy-pick a local branch, then interactive rebase over commits on current branch not in that branch (mirrors `glog -b`) |
+| `grbe -ib` / `grbe --interactive-branch` | Fuzzy-pick a local branch, then interactive rebase over commits on current branch not in that branch (mirrors `glog -p`) |
 | `grbe -p` / `grbe --pick` | Fuzzy-pick a commit with a changed-files preview; on select, surfaces changes in VS Code for observation |
 | `grbe -p -N` | Same as `grbe -p` but limits the picker to the last N commits, e.g. `grbe -p -5` |
 | `grbe -c` / `grbe --continue` | Continue an in-progress rebase (`git rebase --continue`) |
