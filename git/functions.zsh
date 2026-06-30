@@ -253,12 +253,12 @@ SCRIPT
           --no-sort \
           --reverse \
           --prompt="Fork point > " \
-          --header="Select fork point — commits after this will be replayed onto '$onto'" \
+          --header="Select fork point — commits starting from this will be replayed onto '$onto'" \
       | awk '{print $1}')
     [ -z "$sha" ] && return
 
     echo "Rebasing onto '$onto' from $sha..."
-    git rebase --onto "$onto" "$sha"
+    git rebase --onto "$onto" "${sha}~1"
     return
   fi
 }
