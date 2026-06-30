@@ -54,6 +54,7 @@ brew install gh && gh auth login
 
 | Command | Description |
 |---------|-------------|
+| `gbra` | `git branch` — passes all arguments through directly |
 | `gbra delete` | Fuzzy delete local branch; if the branch also exists remotely, prompts to delete it there too |
 | `gbra rename <new-name>` | Rename current branch locally and remotely |
 | `gcko` | Fuzzy checkout — local branches only |
@@ -61,12 +62,9 @@ brew install gh && gh auth login
 | `gcko pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `glog` | Show all commits introduced on current branch (or `-N` for last N, e.g. `glog -5`) |
 | `glog branch` | Fuzzy-pick a local branch to compare against; shows commits on current branch not in the selection |
-| `grbe int` | Interactive rebase over all commits on current branch (or `int -N` for last N, e.g. `grbe int -5`) |
-| `grbe int branch` | Fuzzy-pick a local branch, then interactive rebase over commits on current branch not in that branch |
-| `grbe int preview` | Fuzzy-pick a commit with a changed-files preview; surfaces changes in VS Code for observation (or `int preview -N` to limit picker) |
-| `grbe int branch preview` | Fuzzy-pick a branch, then fuzzy-pick a commit from those commits and surface it in VS Code for observation |
-| `grbe continue` | Continue an in-progress rebase (`git rebase --continue`) |
-| `grbe done` | Finish a `grbe int preview` or `grbe int branch preview` session — aborts the rebase and restores any stashed changes |
+| `grbe` | `git rebase` — passes all arguments through directly |
+| `grbe branch` | Fuzzy-pick a local branch, then interactive rebase over commits on current branch not in that branch |
+| `grbe branch preview` | Fuzzy-pick a branch, then fuzzy-pick a commit from those commits and surface it in VS Code for observation |
 | `grbe onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `gtools` | Interactive GitHub + SSH helper — fzf-pick to create repos, list repos, clone, manage SSH keys |
 | `ghelp` | Print all available commands and aliases |
