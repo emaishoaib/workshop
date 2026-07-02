@@ -105,6 +105,8 @@ each question, present:
 2. **The full Q&A content** — the question (prefixed with its number from Step
    1) and its complete answer, exactly as it will be written.
 
+Where possible, frame the question as a problem statement the reader would actually face — "You have X, you want Y, how?" — rather than a declarative "Why does Z work this way?". If the concept is code-centric, include a short illustrative snippet in the question. The answer should then be the resolution, not a restatement of the problem.
+
 Wait for approval on each question before moving to the next. I may edit the
 content or the file mapping at this stage. If I request changes, apply them and
 re-present that question — not the whole list.
