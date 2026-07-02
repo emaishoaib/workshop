@@ -30,6 +30,38 @@ this solves*, then move to deeper reasoning, then to concrete application. The
 sequence should mirror how someone would build understanding from scratch, not
 the order things happened to come up in conversation.
 
+### The amnesia test — apply at draft time, not at write time
+
+Every question must pass this test before it is presented in Step 1:
+
+> Could someone who has never seen this conversation, this codebase, or this
+> system understand what the question is asking?
+
+This means the question must name the concept, library, system, or tool
+explicitly — never assume it from context. Questions that reference "this
+function", "our approach", "the backend", or any pronoun that only makes sense
+inside the conversation fail immediately.
+
+**Fails:**
+- "Why does `merge_window` handle the case where the cache is cold?"
+- "What happens when the counter hits zero in our loop?"
+- "Why did we move validation to the server?"
+
+**Passes:**
+- "A read-through cache fills itself on a miss — why can many requests for the
+  same cold key at once overload the database, and how does coalescing those
+  requests into one prevent it?"
+- "A retry loop checks `if attempts > 0` before each call — what happens when
+  `attempts` starts at `0`, and why does the loop silently skip the call
+  rather than raising?"
+- "You validate form input in the browser — why must the same checks run again
+  on the server, even though the browser already enforces them?"
+
+Where possible, frame the question as a problem statement the reader would
+actually face — "You have X, you want Y, how?" — rather than a declarative
+"Why does Z work this way?". If the concept is code-centric, include a short
+illustrative snippet in the question itself.
+
 ## Step 1 — Extract highlights
 
 Scan the full conversation chronologically from the beginning, not from the
@@ -53,12 +85,13 @@ Identify key things learned, decided, clarified, or discovered across all of
 these. Don't summarise the task itself; focus on reusable knowledge.
 
 For each highlight, draft it immediately as a question — not a declarative
-statement. The question should reflect how the understanding was reached,
-modelled on the actual exchange if one exists. Note that a single highlight may
-expand into multiple ordered Q&A pairs in Step 3 — at this stage, flag that
-where you can see it coming. Present these as a list and wait for approval. I
-may trim or edit them. If I request changes, re-present the full updated list
-— not just what changed.
+statement. Apply the amnesia test before presenting it. A question that only
+makes sense inside this conversation does not get presented — rewrite it until
+it passes. Note that a single highlight may expand into multiple ordered Q&A
+pairs in Step 3 — at this stage, flag that where you can see it coming.
+
+Present these as a list and wait for approval. I may trim or edit them. If I
+request changes, re-present the full updated list — not just what changed.
 
 ## Step 2 — Review question by question
 
