@@ -81,6 +81,7 @@
             }
         ]
     },
+    "diffEditor.ignoreTrimWhitespace": false,
     "editor.semanticTokenColorCustomizations": {
         "rules": {
             "function": "#56a8f5",
