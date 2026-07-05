@@ -3,6 +3,42 @@
 Standalone utility scripts for day-to-day tasks. All scripts here are on
 `$PATH` automatically via `shell/init.zsh`.
 
+## `merge_invoices.py`
+
+Merges paired PDF files that follow this naming convention:
+
+```
+20250121 - Amazon Echo Dot.pdf           ← order details
+20250121 - Amazon Echo Dot Invoice.pdf   ← invoice
+```
+
+### How it works
+
+For each pair sharing a base name (`<name>.pdf` + `<name> Invoice.pdf`), it
+appends the invoice pages onto the order-details PDF, overwrites the base
+file in place, and moves the separate invoice file to Trash.
+
+### Usage
+
+```bash
+# Preview without making changes
+python scripts/merge_invoices.py ~/path/to/pdfs --dry-run
+
+# Merge all pairs in a directory
+python scripts/merge_invoices.py ~/path/to/pdfs
+```
+
+The `mergeinv` shell alias runs this against the current directory for quick
+use after opening a folder via `⌘⇧T`.
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--dry-run` | Preview which pairs would be merged without making any changes |
+
+Requires: `pypdf`, `send2trash` (both installed by `setup.sh`)
+
 ## `rename_from_pdf.py`
 
 Renames PDFs by extracting a field (date, money amount, or any custom

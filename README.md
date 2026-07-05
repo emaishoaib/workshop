@@ -188,30 +188,7 @@ ln -sf ~/Documents_Public/repos/workshop/ai/CLAUDE.md ~/.claude/CLAUDE.md
 
 # `scripts/`
 
-Standalone utility scripts for day-to-day tasks. All scripts in this directory are on `$PATH` automatically via `shell/init.zsh`, so they're available as commands in every shell session after `setup.sh` runs.
-
-## `merge_invoices.py`
-
-Merges paired PDF files that follow this naming convention:
-
-```
-20250121 - Amazon Echo Dot.pdf           ← order details
-20250121 - Amazon Echo Dot Invoice.pdf   ← invoice
-```
-
-For each matched pair it appends the invoice pages to the order-details PDF, overwrites the base file in place, and moves the separate invoice file to Trash.
-
-```bash
-# Preview without making changes
-python scripts/merge_invoices.py ~/path/to/pdfs --dry-run
-
-# Merge all pairs in a directory
-python scripts/merge_invoices.py ~/path/to/pdfs
-```
-
-The `mergeinv` shell alias runs this against the current directory for quick use after opening a folder via `⌘⇧T`.
-
-Requires: `pypdf`, `send2trash` (both installed by `setup.sh`)
+Standalone utility scripts for day-to-day tasks, on `$PATH` automatically via `shell/init.zsh` (available as commands in every shell session after `setup.sh` runs). See [`scripts/README.md`](scripts/README.md) for what's available and how to use each one.
 
 ---
 
