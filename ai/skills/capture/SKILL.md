@@ -7,6 +7,8 @@ description: "Multi-step knowledge logging workflow. Triggered when the user say
 
 A multi-step knowledge logging workflow triggered by the word `capture` in conversation. Entries are written in different formats depending on their destination — Q&A for general knowledge and runbook entries, narrative prose for stories, short dated prose for team conventions.
 
+This applies the same way regardless of where the material comes from — a live technical discussion, or pasted/external content (old notes, a batch of Q&As someone wants logged). A source that already looks "finished" is not a shortcut past the review gates in Steps 1–2: draft, present, get approval, then write. Never write first and revise after just because the content arrived pre-formed.
+
 ## On question quality
 
 Q&A framing applies to entries going to `software_engineering.md`, `work_business.md`, and `work_runbook.md`. For these, two types of questions, in order of preference:
@@ -138,6 +140,24 @@ was resolved). For highlights going to `work_systems_and_patterns.md`:
 identify the convention (what the team does, in which repos, any nuance worth
 noting).
 
+### Check for existing coverage before presenting
+
+Before a drafted entry goes into the list below, open the destination file and
+check whether this fact — or something close to it — is already there. This
+matters more as these files grow; re-capturing an already-documented fact is
+the likely failure mode, not the exception.
+
+- **Exact or near-duplicate found:** drop the draft, or fold any genuinely new
+  detail into the existing entry instead of writing a second one.
+- **Overlapping but not identical** (same topic, different angle or extra
+  detail): keep both, but note the overlap explicitly when presenting the list
+  — don't let two adjacent entries quietly cover the same ground without
+  saying so.
+- **Contradicts existing content** (a number, a name, a claim that disagrees
+  with what's already written): do not silently resolve it either way. Flag
+  both versions side by side when presenting the list and let me decide which
+  is right, or whether both are correct in different contexts.
+
 Present these as a categorised list — grouped by destination — and wait for
 approval. I may trim, edit, or reroute them. If I request changes, re-present
 the full updated list — not just what changed.
@@ -199,8 +219,12 @@ follows), or `## Security` (security-specific guidance).
 
 Write each entry as a `### Question` heading, with `*Last confirmed:
 YYYY-MM-DD*` on the line immediately after. If the date isn't clear from
-context, ask before writing anything. The answer can be numbered steps — the
-Q&A wrapper still applies, the answer just happens to be procedural.
+context, ask before writing anything. This includes migrating from an old,
+undated note or file — today's date is not automatically the right one to use,
+since the fact wasn't necessarily confirmed today. Ask whether to use today's
+date (the migration date), leave it unconfirmed, or flag it as inherited from
+an undated source. The answer can be numbered steps — the Q&A wrapper still
+applies, the answer just happens to be procedural.
 
 ### `work_stories.md` — narrative prose
 
