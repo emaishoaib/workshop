@@ -44,8 +44,8 @@ MONTHS = {
 LABEL_MATCH_THRESHOLD = 0.72
 
 DATE_PATTERNS = [
-    # 2024-01-30 or 2024/01/30
-    (re.compile(r"\b(\d{4})[/-](\d{1,2})[/-](\d{1,2})\b"),
+    # 2024-01-30 or 2024/01/30 or 2024.01.30
+    (re.compile(r"\b(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})\b"),
      lambda m: (int(m.group(1)), int(m.group(2)), int(m.group(3)))),
     # 30 January 2024 / 30 Jan 2024 / 30-Jan-2024
     (re.compile(r"\b(\d{1,2})[\s\-]+([A-Za-z]{3,9})[\s\-,]+(\d{4})\b"),
@@ -55,6 +55,9 @@ DATE_PATTERNS = [
      lambda m: (int(m.group(3)), MONTHS.get(m.group(1).lower()), int(m.group(2)))),
     # 30/01/2024 -- day-first assumed; revisit if your invoices are month-first
     (re.compile(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b"),
+     lambda m: (int(m.group(3)), int(m.group(2)), int(m.group(1)))),
+    # 30.01.2024 -- day-first assumed
+    (re.compile(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b"),
      lambda m: (int(m.group(3)), int(m.group(2)), int(m.group(1)))),
 ]
 
