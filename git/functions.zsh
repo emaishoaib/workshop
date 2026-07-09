@@ -79,11 +79,16 @@ gcko() {
 }
 
 # Force-push current HEAD to a remote branch (git push origin HEAD:<branch> --force-with-lease)
+# force:           force-push current branch to its tracked upstream (--force-with-lease)
 # head:            fuzzy-pick a remote branch to push HEAD to
 # head:<branch>    push HEAD straight to <branch>, no prompt
 # new:             push a newly created local branch to origin and set up tracking (git push -u origin HEAD)
 gpush() {
-  if [ "$1" = "head" ]; then
+  if [ "$1" = "force" ]; then
+    shift
+    git push --force-with-lease "$@"
+
+  elif [ "$1" = "head" ]; then
     local branch
     branch=$(git branch -r | grep -v HEAD | sed 's/^[ *]*//;s#^origin/##' | sort -u | fzf --prompt="Push HEAD to > ")
     [ -z "$branch" ] && return
@@ -117,6 +122,7 @@ ghelp() {
   echo "  glog                     show commits on current branch (or -N for last N, e.g. glog -5)"
   echo "  glog branch              fuzzy-pick a branch to compare against"
   echo "  gpush                    git push"
+  echo "  gpush force              force-push current branch to its tracked upstream (--force-with-lease)"
   echo "  gpush head               fuzzy-pick a remote branch, force-push HEAD to it (--force-with-lease)"
   echo "  gpush head:<branch>      force-push HEAD straight to <branch>, no prompt"
   echo "  gpush new                push a new local branch to origin and set upstream tracking (-u origin HEAD)"
