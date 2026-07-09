@@ -55,6 +55,7 @@ brew install gh && gh auth login
 | `glog` | Show all commits introduced on current branch (or `-N` for last N, e.g. `glog -5`) |
 | `glog branch` | Fuzzy-pick a local branch to compare against; shows commits on current branch not in the selection |
 | `gpush` | `git push` — passes all arguments through directly |
+| `gpush force` | Force-push current branch to its tracked upstream (`git push --force-with-lease`) |
 | `gpush head` | Fuzzy-pick a remote branch, then force-push HEAD to it (`git push origin HEAD:<branch> --force-with-lease`) |
 | `gpush head:<branch>` | Force-push HEAD straight to `<branch>`, no prompt |
 | `gpush new` | Push a newly created local branch to origin and set up tracking (`git push -u origin HEAD`) |
