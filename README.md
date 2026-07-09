@@ -54,6 +54,10 @@ brew install gh && gh auth login
 | `gcko pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `glog` | Show all commits introduced on current branch (or `-N` for last N, e.g. `glog -5`) |
 | `glog branch` | Fuzzy-pick a local branch to compare against; shows commits on current branch not in the selection |
+| `gpush` | `git push` — passes all arguments through directly |
+| `gpush head` | Fuzzy-pick a remote branch, then force-push HEAD to it (`git push origin HEAD:<branch> --force-with-lease`) |
+| `gpush head:<branch>` | Force-push HEAD straight to `<branch>`, no prompt |
+| `gpush new` | Push a newly created local branch to origin and set up tracking (`git push -u origin HEAD`) |
 | `grbe` | `git rebase` — passes all arguments through directly |
 | `grbe branch` | Fuzzy-pick a local branch, then interactive rebase over commits on current branch not in that branch |
 | `grbe branch preview` | Fuzzy-pick a branch, then fuzzy-pick a commit from those commits and surface it in VS Code for observation |
