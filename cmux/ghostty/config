@@ -1,0 +1,4 @@
+# Ghostty terminal config -- cmux renders via libghostty, so theme, font,
+# and color settings here apply to cmux directly.
+#
+# Symlinked from ~/.config/ghostty/config by setup.sh.

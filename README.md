@@ -182,6 +182,25 @@ Config options (in `vscode/settings.json`):
 
 `formatOnSave` and `trimTrailingWhitespace` are both disabled for Markdown via a `[markdown]` language override in `settings.json`. This prevents Prettier (or any active Markdown formatter) from reflowing content on every `⌘S`, and preserves intentional trailing spaces (which are valid line-break syntax in Markdown).
 
+# `cmux/`
+
+Config for [cmux](https://cmux.com/), the terminal used to run AI coding agents in parallel. cmux splits its settings across two files, both version-controlled here and symlinked into place by `setup.sh`:
+
+| File | Symlinked to | Controls |
+|------|-------------|----------|
+| `cmux/cmux.json` | `~/.config/cmux/cmux.json` | App-level settings — shortcuts, sidebar, notifications, custom commands, browser behaviour |
+| `cmux/ghostty/config` | `~/.config/ghostty/config` | Terminal rendering — theme, font, colors, cursor (cmux renders via libghostty) |
+
+NOTE -- stuff like a prompt color, for example, isn't set here - it comes from `shell/prompt.zsh`, since the prompt is a shell-level concept, not a terminal one. `cmux/` is for things that are genuinely terminal-specific, like keybindings or the color palette of the terminal itself.
+
+To wire it up manually:
+
+```bash
+mkdir -p ~/.config/cmux ~/.config/ghostty
+ln -sf ~/Documents_Public/repos/workshop/cmux/cmux.json ~/.config/cmux/cmux.json
+ln -sf ~/Documents_Public/repos/workshop/cmux/ghostty/config ~/.config/ghostty/config
+```
+
 # `ai/`
 
 Global Claude instructions, kept here so they're version-controlled and consistent across machines. `CLAUDE.md` is symlinked from `~/.claude/CLAUDE.md` so Claude Code picks it up globally and any changes are tracked in git.

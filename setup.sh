@@ -95,6 +95,27 @@ else
   done < "$EXTENSIONS_FILE"
 fi
 
+# --- cmux ---
+echo ""
+echo "Configuring cmux..."
+
+mkdir -p "$HOME/.config/cmux" "$HOME/.config/ghostty"
+
+declare -A CMUX_LINKS=(
+  ["$HOME/.config/cmux/cmux.json"]="$WORKSHOP_DIR/cmux/cmux.json"
+  ["$HOME/.config/ghostty/config"]="$WORKSHOP_DIR/cmux/ghostty/config"
+)
+
+for target in "${!CMUX_LINKS[@]}"; do
+  source="${CMUX_LINKS[$target]}"
+  if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+    echo "  >> $(basename "$target") already symlinked"
+  else
+    ln -sf "$source" "$target"
+    echo "  >> symlinked $(basename "$target")"
+  fi
+done
+
 # --- Scripts ---
 echo ""
 echo "Configuring scripts/..."
