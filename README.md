@@ -30,6 +30,8 @@ General aliases in `aliases.zsh`:
 | `czsh` | Open `~/.zshrc` in VS Code |
 | `rzsh` | Reload `~/.zshrc` |
 
+`prompt.zsh` sets a green `PROMPT` (`user@host cwd %`) using zsh's portable `%F{color}` escapes, so it renders correctly in any terminal emulator without needing terminal-specific config.
+
 # `git/`
 
 Fzf-powered git functions. Replaces tedious branch/file picking with fuzzy search.
