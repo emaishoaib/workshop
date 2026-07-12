@@ -1,0 +1,50 @@
+{
+  "skill_name": "session-writeup",
+  "banned_meta_phrases": [
+    "\\bthe user asked\\b",
+    "\\bwas requested\\b",
+    "\\buser chose\\b",
+    "\\bconfirmed readiness\\b",
+    "\\bwalked through\\b",
+    "\\bpresented options?\\b",
+    "\\buser pointed out\\b",
+    "\\bwas discussed\\b",
+    "\\braised the question\\b",
+    "\\bthe ask (was|shifted)\\b",
+    "\\bit was decided\\b",
+    "\\bwas flagged\\b",
+    "\\bexplicit(ly)? requested\\b",
+    "\\bthe user chose\\b",
+    "\\ban? option[s]? (was|were) (presented|chosen)\\b"
+  ],
+  "structural_requirements": [
+    { "description": "Has a 'Files changed' section", "pattern": "#+\\s*files changed" },
+    { "description": "Has an 'Open items'/'Follow-ups' section", "pattern": "#+\\s*(open items|follow-?ups?)" }
+  ],
+  "evals": [
+    {
+      "id": 0,
+      "eval_name": "eval-incident-payments",
+      "prompt": "Resumed-after-compaction incident write-up request (payments/tax-calc). Hidden facts only in raw transcript: incident ref, exact error, rollout typo, commit hash, EU rate table root cause.",
+      "expected_output": "A markdown write-up that recovers the hidden facts by reading the raw transcript fixture, organized as a technical narrative (situation/root cause/decision/fix/result) with no meta-conversational phrasing, ending in Files changed + Open items sections.",
+      "files": ["fixtures/incident-payments-transcript.jsonl", "fixtures/eval-incident-payments-prompt.md"],
+      "facts_to_recover": ["INC-2291", "enable-new-tax-calc", "a1b2c3d", "100", "eu.json"]
+    },
+    {
+      "id": 1,
+      "eval_name": "eval-customer-escalation",
+      "prompt": "Resumed-after-compaction customer-escalation write-up request (bulk CSV import bug). Hidden facts only in raw transcript: case number, customer name, exact bug, affected job/row counts, backfill script name.",
+      "expected_output": "A markdown write-up that recovers the hidden facts by reading the raw transcript fixture, organized as a technical narrative with no meta-conversational phrasing, ending in Files changed + Open items sections.",
+      "files": ["fixtures/customer-escalation-transcript.jsonl", "fixtures/eval-customer-escalation-prompt.md"],
+      "facts_to_recover": ["#4471", "Northwind", "ChunkSequenceError", "14", "41,000", "backfill_truncated_imports"]
+    },
+    {
+      "id": 2,
+      "eval_name": "eval-short-session",
+      "prompt": "Short single-sitting conversation, no compaction, nothing hidden (ETL column-rename bug). Tests clean narrative writing without needless transcript-hunting.",
+      "expected_output": "A markdown write-up covering the ETL bug end to end with no meta-conversational phrasing, ending in Files changed + Open items sections.",
+      "files": ["fixtures/eval-short-session-prompt.md"],
+      "facts_to_recover": ["DATA-118", "region_code", "market_code", "7f3a91c", "validate_schema"]
+    }
+  ]
+}
