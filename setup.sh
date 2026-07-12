@@ -119,8 +119,7 @@ done
 # --- Scripts ---
 echo ""
 echo "Configuring scripts/..."
-
-chmod +x "$WORKSHOP_DIR"/scripts/* 2>/dev/null && echo "  >> chmod +x scripts/*"
+echo "  >> executable bits are tracked in git (core.fileMode) — nothing to chmod"
 
 if ! python3 -c "import pypdf" &>/dev/null 2>&1; then
   echo "  Installing pypdf..."
