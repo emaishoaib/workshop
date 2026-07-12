@@ -6,4 +6,5 @@ export PATH="$WORKSHOP/scripts:$WORKSHOP/git:$PATH"
 
 source "$WORKSHOP/git/functions.zsh"
 source "$WORKSHOP/shell/aliases.zsh"
+source "$WORKSHOP/shell/prompt.zsh"
 source "$WORKSHOP/docker/aliases.zsh"
