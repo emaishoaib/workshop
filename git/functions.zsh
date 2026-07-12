@@ -111,6 +111,16 @@ gpush() {
   fi
 }
 
+# Submodule helpers
+# reset: sync all submodules to the commit pinned by the parent repo (git submodule update --init)
+gsmod() {
+  if [ "$1" = "reset" ]; then
+    git submodule update --init
+  else
+    git submodule "$@"
+  fi
+}
+
 # Show all custom git commands and functions
 ghelp() {
   echo "  gbra                     git branch"
@@ -126,6 +136,8 @@ ghelp() {
   echo "  gpush head               fuzzy-pick a remote branch, force-push HEAD to it (--force-with-lease)"
   echo "  gpush head:<branch>      force-push HEAD straight to <branch>, no prompt"
   echo "  gpush new                push a new local branch to origin and set upstream tracking (-u origin HEAD)"
+  echo "  gsmod                    git submodule"
+  echo "  gsmod reset              sync all submodules to the commit pinned by the parent repo (git submodule update --init)"
   echo "  grbe                     git rebase"
   echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
   echo "  grbe branch preview      fuzzy-pick a branch, then fuzzy-pick a commit to observe in VS Code"
