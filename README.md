@@ -72,6 +72,7 @@ brew install gh && gh auth login
 | `grbe branch preview` | Fuzzy-pick a branch, then fuzzy-pick a commit from those commits and surface it in VS Code for observation |
 | `grbe onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `gtools` | Interactive GitHub + SSH helper — fzf-pick to create repos, list repos, clone, manage SSH keys |
+| `gunlock` | Remove a stale git index lock (`rm -f .git/index.lock`) — fixes "Another git process seems to be running" after a crashed/killed git process |
 | `ghelp` | Print all available commands and aliases |
 
 ## `gtools`
