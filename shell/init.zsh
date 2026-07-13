@@ -7,4 +7,6 @@ export PATH="$WORKSHOP/scripts:$WORKSHOP/git:$PATH"
 source "$WORKSHOP/git/functions.zsh"
 source "$WORKSHOP/shell/aliases.zsh"
 source "$WORKSHOP/shell/prompt.zsh"
-source "$WORKSHOP/docker/aliases.zsh"
+
+# Not version controlled — see .gitignore
+[ -f "$WORKSHOP/work_aliases.zsh" ] && source "$WORKSHOP/work_aliases.zsh"
