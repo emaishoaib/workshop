@@ -121,6 +121,52 @@ gsmod() {
   fi
 }
 
+# Remove a stale git index lock (git process crashed/killed mid-operation)
+# If no lock is found relative to the cwd, search upward for the nearest one
+# and confirm before deleting it.
+gunlock() {
+  local lockfile=""
+
+  # Preferred path: ask git itself where the current repo's git dir is
+  # (handles worktrees/submodules correctly).
+  local gitdir
+  gitdir=$(git rev-parse --absolute-git-dir 2>/dev/null)
+  if [[ -n "$gitdir" && -f "$gitdir/index.lock" ]]; then
+    lockfile="$gitdir/index.lock"
+  fi
+
+  # Fallback: not inside a recognized repo (or no lock there) — walk up
+  # parent directories looking for any .git/index.lock.
+  if [[ -z "$lockfile" ]]; then
+    local dir="$PWD"
+    while [[ "$dir" != "/" ]]; do
+      if [[ -f "$dir/.git/index.lock" ]]; then
+        lockfile="$dir/.git/index.lock"
+        break
+      fi
+      dir=$(dirname "$dir")
+    done
+  fi
+
+  if [[ -z "$lockfile" ]]; then
+    echo "gunlock: no index.lock found in $PWD or any parent directory."
+    return 1
+  fi
+
+  if [[ "$lockfile" != "$PWD/.git/index.lock" ]]; then
+    echo "gunlock: no lock file at $PWD/.git/index.lock"
+    echo "gunlock: found one at $lockfile"
+    read "confirm?Delete this lock file instead? [y/N] "
+    if [[ "$confirm" != [yY] ]]; then
+      echo "gunlock: aborted."
+      return 1
+    fi
+  fi
+
+  rm -f "$lockfile"
+  echo "gunlock: removed $lockfile"
+}
+
 # Show all custom git commands and functions
 ghelp() {
   echo "  gbra                     git branch"
@@ -138,6 +184,7 @@ ghelp() {
   echo "  gpush new                push a new local branch to origin and set upstream tracking (-u origin HEAD)"
   echo "  gsmod                    git submodule"
   echo "  gsmod reset              sync all submodules to the commit pinned by the parent repo (git submodule update --init)"
+  echo "  gunlock                  remove a stale git index lock; if not found in cwd, searches upward and confirms before deleting"
   echo "  grbe                     git rebase"
   echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
   echo "  grbe branch preview      fuzzy-pick a branch, then fuzzy-pick a commit to observe in VS Code"
@@ -228,7 +275,7 @@ sed -i '' "s/^pick $short_sha/edit $short_sha/" "\$1"
 SCRIPT
     chmod +x "$seq_editor"
 
-    GIT_SEQUENCE_EDITOR="$seq_editor" git rebase -i "${sha}~1"
+    GIT_SEQUENCE_EDITOR="$seq_editor" git rebase -i --rebase-merges "${sha}~1"
     rm -f "$seq_editor"
 
     git reset HEAD~1
@@ -253,7 +300,7 @@ SCRIPT
     selected=$(echo "$selected" | tr -d '[:space:]')
     local base
     base=$(git merge-base HEAD "$selected")
-    [ -n "$base" ] && git rebase -i "$base"
+    [ -n "$base" ] && git rebase -i --rebase-merges "$base"
     return
   fi
 
@@ -289,7 +336,7 @@ SCRIPT
     [ -z "$sha" ] && return
 
     echo "Rebasing onto '$onto' from $sha..."
-    git rebase --onto "$onto" "${sha}~1"
+    git rebase --onto "$onto" --rebase-merges "${sha}~1"
     return
   fi
 
