@@ -55,6 +55,8 @@ brew install gh && gh auth login
 | `gbra` | `git branch` — passes all arguments through directly |
 | `gbra delete` | Fuzzy delete local branch; if the branch also exists remotely, prompts to delete it there too |
 | `gbra rename <new-name>` | Rename current branch locally and remotely |
+| `gchy` | `git cherry-pick` — passes all arguments through directly |
+| `gchy branch` | Fuzzy-pick a branch, then multi-select (Tab) from the commits unique to that branch, and cherry-pick them onto the current branch, oldest first |
 | `gcko` | Fuzzy checkout — local branches only |
 | `gcko remote` | Fuzzy checkout — all branches (local + remote) |
 | `gcko pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
