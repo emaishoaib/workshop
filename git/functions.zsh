@@ -189,6 +189,7 @@ ghelp() {
   echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
   echo "  grbe branch preview      fuzzy-pick a branch, then fuzzy-pick a commit to observe in VS Code"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
+  echo "  grbe all                 interactive rebase over every commit on the current branch vs the default branch"
   echo "  ghelp                    show this help"
 }
 
@@ -224,6 +225,7 @@ glog() {
 # branch preview:  fuzzy-pick a branch, then fuzzy-pick a commit to observe in VS Code
 # done:            finish a branch preview session (abort rebase + restore stash)
 # onto:            fuzzy-pick a branch and fork point (sha), then rebase onto it
+# all:              interactive rebase over every commit on the current branch vs the default branch
 grbe() {
   local default_branch
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
@@ -300,6 +302,13 @@ SCRIPT
     selected=$(echo "$selected" | tr -d '[:space:]')
     local base
     base=$(git merge-base HEAD "$selected")
+    [ -n "$base" ] && git rebase -i --rebase-merges "$base"
+    return
+  fi
+
+  if [ "$1" = "all" ]; then
+    local base
+    base=$(git merge-base HEAD "origin/$default_branch")
     [ -n "$base" ] && git rebase -i --rebase-merges "$base"
     return
   fi
