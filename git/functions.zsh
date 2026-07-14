@@ -167,6 +167,51 @@ gunlock() {
   echo "gunlock: removed $lockfile"
 }
 
+# Cherry-pick helpers
+# (no args): git cherry-pick
+# branch:    fuzzy-pick a source branch, then multi-select (Tab) from the
+#            commits that belong to that branch alone (i.e. not already on
+#            the current branch), and cherry-pick them onto the current
+#            branch, oldest first.
+gchy() {
+  if [ "$1" = "branch" ]; then
+    local current
+    current=$(git branch --show-current)
+
+    local branch
+    branch=$(git branch | sed 's/^[ *]*//' | sort -u | grep -v "^$current$" \
+      | fzf \
+          --prompt="Cherry-pick from > " \
+          --header="Select branch to cherry-pick commits from" \
+          --preview='git log --oneline --color=always {1} 2>/dev/null | head -10')
+    [ -z "$branch" ] && return
+    branch=$(echo "$branch" | tr -d '[:space:]')
+
+    local shas
+    shas=$(git log --oneline --color=always "$branch" "^$current" \
+      | tail -r \
+      | fzf --ansi -m --no-sort \
+          --preview='git show --name-status --format= {1}' \
+          --preview-window=right:60% \
+          --prompt="Cherry-pick commits > " \
+          --header="Tab: select multiple  |  Enter: cherry-pick onto $current" \
+      | awk '{print $1}')
+    [ -z "$shas" ] && return
+
+    # list is oldest-first (top of screen = latest, bottom = oldest),
+    # so selection order already matches the order commits should be applied in
+    local ordered
+    ordered="$shas"
+
+    echo "Cherry-picking onto '$current':"
+    echo "$ordered"
+    git cherry-pick $(echo "$ordered")
+    return
+  fi
+
+  git cherry-pick "$@"
+}
+
 # Show all custom git commands and functions
 ghelp() {
   echo "  gbra                     git branch"
@@ -175,6 +220,8 @@ ghelp() {
   echo "  gcko                     fuzzy checkout (local only)"
   echo "  gcko remote              fuzzy checkout (local + remote)"
   echo "  gcko pr                  checkout a PR by number or fuzzy-pick"
+  echo "  gchy                     git cherry-pick"
+  echo "  gchy branch              fuzzy-pick a branch, multi-select its unique commits, cherry-pick them onto the current branch"
   echo "  glog                     show commits on current branch (or -N for last N, e.g. glog -5)"
   echo "  glog branch              fuzzy-pick a branch to compare against"
   echo "  gpush                    git push"
