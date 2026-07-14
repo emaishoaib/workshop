@@ -71,7 +71,7 @@ brew install gh && gh auth login
 | `gsmod reset` | Sync all submodules to the commit pinned by the parent repo (`git submodule update --init`) — fixes the "S" (submodule with new commits) indicator in VS Code |
 | `grbe` | `git rebase` — passes all arguments through directly |
 | `grbe branch` | Fuzzy-pick a local branch, then interactive rebase over commits on current branch not in that branch |
-| `grbe branch preview` | Fuzzy-pick a branch, then fuzzy-pick a commit from those commits and surface it in VS Code for observation |
+| `grbe preview` | Fuzzy-pick a commit from those on the current branch vs the default branch, and surface it in VS Code for observation |
 | `grbe onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `grbe all` | Interactive rebase over every commit on the current branch vs the default branch — no guessing a commit count |
 | `gtools` | Interactive GitHub + SSH helper — fzf-pick to create repos, list repos, clone, manage SSH keys |

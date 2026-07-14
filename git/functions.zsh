@@ -234,7 +234,7 @@ ghelp() {
   echo "  gunlock                  remove a stale git index lock; if not found in cwd, searches upward and confirms before deleting"
   echo "  grbe                     git rebase"
   echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
-  echo "  grbe branch preview      fuzzy-pick a branch, then fuzzy-pick a commit to observe in VS Code"
+  echo "  grbe preview             fuzzy-pick a commit (vs default branch) to observe in VS Code"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  grbe all                 interactive rebase over every commit on the current branch vs the default branch"
   echo "  ghelp                    show this help"
@@ -269,29 +269,18 @@ glog() {
 # Rebase helpers
 # (no args):       git rebase
 # branch:          fuzzy-pick a branch, interactive rebase commits not in that branch
-# branch preview:  fuzzy-pick a branch, then fuzzy-pick a commit to observe in VS Code
-# done:            finish a branch preview session (abort rebase + restore stash)
+# preview:         fuzzy-pick a commit (vs default branch) to observe in VS Code
+# done:            finish a preview session (abort rebase + restore stash)
 # onto:            fuzzy-pick a branch and fork point (sha), then rebase onto it
 # all:              interactive rebase over every commit on the current branch vs the default branch
 grbe() {
   local default_branch
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
 
-  if [ "$1" = "branch" ] && [ "$2" = "preview" ]; then
-    local current
-    current=$(git branch --show-current)
-
-    local selected
-    selected=$(git branch | grep -v HEAD | sed 's/^[ *]*//' | grep -v "^$current$" \
-      | fzf \
-          --prompt="Compare against > " \
-          --header="Select branch — commits on $current not in selection will be shown")
-    [ -z "$selected" ] && return
-    selected=$(echo "$selected" | tr -d '[:space:]')
-
+  if [ "$1" = "preview" ]; then
     local sha
     sha=$(
-      git log --oneline --color=always HEAD "^$selected" \
+      git log --oneline --color=always HEAD "^origin/$default_branch" \
       | fzf --ansi --no-sort \
           --preview='git show --name-status --format= {1}' \
           --preview-window=right:60% \
