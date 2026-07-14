@@ -191,7 +191,7 @@ Config options (in `vscode/settings.json`):
 
 # `cmux/`
 
-Config for [cmux](https://cmux.com/), the terminal used to run AI coding agents in parallel. cmux splits its settings across two files, both version-controlled here and symlinked into place by `setup.sh`:
+Config for [cmux](https://cmux.com/), the terminal used to run AI coding agents in parallel. `setup.sh` installs the app itself (`brew install --cask cmux`, if it's not already in `/Applications`), then symlinks its settings into place. cmux splits its settings across two files, both version-controlled here:
 
 | File | Symlinked to | Controls |
 |------|-------------|----------|
@@ -207,6 +207,28 @@ mkdir -p ~/.config/cmux ~/.config/ghostty
 ln -sf ~/Documents_Public/repos/workshop/cmux/cmux.json ~/.config/cmux/cmux.json
 ln -sf ~/Documents_Public/repos/workshop/cmux/ghostty/config ~/.config/ghostty/config
 ```
+
+## cmux CLI on PATH
+
+cmux ships a `cmux` CLI binary inside its app bundle (`/Applications/cmux.app/Contents/Resources/bin/cmux`), installed on first launch of the app. It's only on `PATH` automatically inside shells that cmux itself opens — `shell/init.zsh` adds that bin directory to `PATH` (guarded by an existence check) so `cmux` also works from iTerm2, Terminal.app, or any other shell. If you've just installed cmux for the first time, launch it once, then `source ~/.zshrc`.
+
+## cmux socket access mode
+
+The `cmux` CLI (and the Raycast extension in `raycast/`) talk to the running app over a Unix socket (`~/.local/state/cmux/cmux.sock` by default per `cmux --help` — cmux.com's docs site says `/tmp/cmux.sock`, which is stale for the version this repo was set up against; override either way with `CMUX_SOCKET_PATH`). By default, cmux only accepts connections from processes it spawned itself — so `cmux` commands work fine from a workspace shell inside cmux, but fail with a broken-pipe error from any other terminal, or from Raycast.
+
+`shell/init.zsh` runs `launchctl setenv CMUX_SOCKET_MODE allowAll` so cmux accepts connections from **any local process**, not just ones it launched — this is what makes the Raycast extension (and running `cmux` from any other terminal) work. It only takes effect for apps launched after it's set, so quit and relaunch cmux once after cloning this repo.
+
+**Tradeoff:** `allowAll` means any process running as you — not just your own shells — can read workspace state over that socket, and can call `cmux send` to inject keystrokes into your terminals. This is a reasonable default on a personal, single-user machine, but per cmux's own docs, avoid it on a shared machine. If that's a concern, remove the `launchctl setenv` block from `shell/init.zsh`; the CLI and Raycast extension will then only work when invoked from inside cmux itself.
+
+# `raycast/`
+
+A Raycast extension (`raycast/cmux-workspaces/`) that jumps to an open cmux workspace by name: type a few letters, the list fuzzy-narrows live (Raycast's built-in `List` filtering, not a hardcoded Quicklink), arrow keys or Enter to select, and it switches cmux to that workspace and brings the app forward.
+
+Needs `CMUX_SOCKET_MODE=allowAll` (see above) since Raycast runs it as its own subprocess, not one cmux spawned.
+
+**Requires signing in to Raycast.** Raycast doesn't require an account for everyday use, but its Import Extension / Store / dev-extension flow does gate behind a sign-in — there's no way around that from the extension side.
+
+Raycast has no CLI-installable-extension mechanism, so this is the one setup step that stays manual — see `raycast/README.md` for build and import instructions.
 
 # `ai/`
 
