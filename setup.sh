@@ -97,6 +97,18 @@ fi
 
 # --- cmux ---
 echo ""
+echo "Installing cmux..."
+
+if [ -d "/Applications/cmux.app" ]; then
+  echo "  >> cmux"
+else
+  echo "  Installing cmux..."
+  brew tap manaflow-ai/cmux
+  brew install --cask cmux
+  echo "  >> launch cmux once to finish installing its CLI, then reload your shell"
+fi
+
+echo ""
 echo "Configuring cmux..."
 
 mkdir -p "$HOME/.config/cmux" "$HOME/.config/ghostty"
