@@ -28,6 +28,9 @@ brew install gh && gh auth login
 | `gpush head` | Fuzzy-pick a remote branch, then force-push HEAD to it (`git push origin HEAD:<branch> --force-with-lease`) |
 | `gpush head:<branch>` | Force-push HEAD straight to `<branch>`, no prompt |
 | `gpush new` | Push a newly created local branch to origin and set up tracking (`git push -u origin HEAD`) |
+| `gres` | Fuzzy-pick a commit and `git reset` to it (default mode) — other args pass through directly |
+| `gres mixed` | Fuzzy-pick a commit and `git reset --mixed` to it |
+| `gres hard` | Fuzzy-pick a commit and `git reset --hard` to it |
 | `gsmod` | `git submodule` — passes all arguments through directly |
 | `gsmod reset` | Sync all submodules to the commit pinned by the parent repo (`git submodule update --init`) — fixes the "S" (submodule with new commits) indicator in VS Code |
 | `grbe` | `git rebase` — passes all arguments through directly |

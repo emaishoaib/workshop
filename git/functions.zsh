@@ -167,6 +167,34 @@ gunlock() {
   echo "gunlock: removed $lockfile"
 }
 
+# Reset helpers
+# (no args): fuzzy-pick a commit from history and reset to it (default mode)
+# mixed:     fuzzy-pick a commit and reset to it with --mixed
+# hard:      fuzzy-pick a commit and reset to it with --hard
+# other args: git reset passthrough
+gres() {
+  local mode=""
+  case "$1" in
+    mixed) mode="--mixed"; shift ;;
+    hard)  mode="--hard"; shift ;;
+    "") ;;
+    *) git reset "$@"; return ;;
+  esac
+
+  local sha
+  sha=$(git log --oneline --color=always \
+    | fzf --ansi --no-sort \
+        --preview='git show --stat --color=always --format= {1} 2>/dev/null; echo; git show --color=always {1} 2>/dev/null' \
+        --preview-window=right:60% \
+        --prompt="Reset to > " \
+        --header="Select commit to reset to${mode:+ ($mode)}" \
+    | awk '{print $1}')
+  [ -z "$sha" ] && return
+
+  echo "git reset ${mode:+$mode }$sha"
+  git reset $mode "$sha"
+}
+
 # Cherry-pick helpers
 # (no args): git cherry-pick
 # branch:    fuzzy-pick a source branch, then multi-select (Tab) from the
@@ -189,7 +217,6 @@ gchy() {
 
     local shas
     shas=$(git log --oneline --color=always "$branch" "^$current" \
-      | tail -r \
       | fzf --ansi -m --no-sort \
           --preview='git show --name-status --format= {1}' \
           --preview-window=right:60% \
@@ -198,10 +225,17 @@ gchy() {
       | awk '{print $1}')
     [ -z "$shas" ] && return
 
-    # list is oldest-first (top of screen = latest, bottom = oldest),
-    # so selection order already matches the order commits should be applied in
+    # fzf's multi-select output order follows the order items were tabbed in,
+    # NOT their position in the list -- so it can't be trusted for ordering.
+    # Resolve the selection to full hashes, then re-derive the true
+    # oldest -> newest order straight from git history.
+    local selected_full sha
+    selected_full=$(for sha in ${(f)shas}; do git rev-parse "$sha"; done)
+
     local ordered
-    ordered="$shas"
+    ordered=$(git rev-list --reverse "$branch" "^$current" \
+      | grep -Fx -f <(echo "$selected_full"))
+    [ -z "$ordered" ] && return
 
     echo "Cherry-picking onto '$current':"
     echo "$ordered"
@@ -229,6 +263,9 @@ ghelp() {
   echo "  gpush head               fuzzy-pick a remote branch, force-push HEAD to it (--force-with-lease)"
   echo "  gpush head:<branch>      force-push HEAD straight to <branch>, no prompt"
   echo "  gpush new                push a new local branch to origin and set upstream tracking (-u origin HEAD)"
+  echo "  gres                     fuzzy-pick a commit and git reset to it (default mode)"
+  echo "  gres mixed               fuzzy-pick a commit and git reset --mixed to it"
+  echo "  gres hard                fuzzy-pick a commit and git reset --hard to it"
   echo "  gsmod                    git submodule"
   echo "  gsmod reset              sync all submodules to the commit pinned by the parent repo (git submodule update --init)"
   echo "  gunlock                  remove a stale git index lock; if not found in cwd, searches upward and confirms before deleting"
