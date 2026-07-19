@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- ===== Bundle identity (required by macOS / App Store) ===== -->
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleIconFile</key>
+	<string>app.icns</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>GPL-3.0 licence</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+
+	<!-- ===== Versioning (substituted from xcconfig; CI overrides via config/local.xcconfig) ===== -->
+	<key>CFBundleShortVersionString</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+
+	<!-- ===== Launch behavior (read by LaunchServices before app starts) ===== -->
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>LSUIElement</key>
+	<string>true</string>
+	<key>NSPrincipalClass</key>
+	<string>App</string>
+	<key>NSSupportsAutomaticTermination</key>
+	<string>false</string>
+	<key>NSSupportsSuddenTermination</key>
+	<string>false</string>
+	<key>ATSApplicationFontsPath</key>
+	<string></string>
+
+	<!-- ===== URL scheme registration (LaunchServices dispatches $(PRODUCT_BUNDLE_IDENTIFIER):// to us) ===== -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- (removed: Sparkle SUPublicEDKey/SUEnableAutomaticChecks/SUScheduledCheckInterval keys —
+	     leftover from the Sparkle removal pass; Sparkle.framework is no longer linked, so these
+	     were never read. Also removed: AppCenterApplicationForwarderEnabled/AppCenterSecret —
+	     AppCenter crash reporting/telemetry was deleted along with vendor/AppCenter. Also removed:
+	     Domain/ApiDomain — only ever read by src/api/Endpoints.swift, which was deleted since
+	     nothing called anything but the dead supportProject() menu action.) -->
+</dict>
+</plist>

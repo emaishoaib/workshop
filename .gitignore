@@ -1,1 +1,6 @@
 db/local.zsh
+macos/alt-tab/AltTab.app
+macos/alt-tab/.build/
+macos/alt-tab/.last-build-checksum
+xcuserdata/
+.DS_Store

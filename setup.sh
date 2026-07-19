@@ -181,6 +181,50 @@ for target in "${!CMUX_LINKS[@]}"; do
   fi
 done
 
+# --- AltTab (headless) ---
+echo ""
+echo "Configuring AltTab (headless)..."
+
+ALTTAB_DIR="$WORKSHOP_DIR/macos/alt-tab"
+ALTTAB_CHECKSUM_FILE="$ALTTAB_DIR/.last-build-checksum"
+ALTTAB_LABEL="com.mustafa.alttab-headless"
+# Only these paths feed the build (source, resources, the SwiftPM manifest/dependency, and the
+# few loose files build.sh reads directly) -- everything else in this flattened directory
+# (README.md, CHANGELOG.md, build.sh, install.sh, AltTab.app, .build/) is docs/scripts/output,
+# not build input, and shouldn't trigger a rebuild on its own.
+ALTTAB_SOURCE_PATHS=(src resources vendor Sources Package.swift Info.plist alt_tab_macos.entitlements alt-tab-macos-Bridging-Header.h)
+
+alttab_checksum() {
+  ( cd "$ALTTAB_DIR" && find "${ALTTAB_SOURCE_PATHS[@]}" -type f ! -name ".DS_Store" \
+    -exec shasum {} \; 2>/dev/null | sort | shasum | awk '{print $1}' )
+}
+
+alttab_build_and_install() {
+  if ! command -v swift &>/dev/null; then
+    echo "  !! swift not found -- install the Xcode Command Line Tools (xcode-select --install), then re-run setup.sh. Skipping AltTab."
+    return
+  fi
+  if (cd "$ALTTAB_DIR" && ./build.sh && ./install.sh); then
+    alttab_checksum > "$ALTTAB_CHECKSUM_FILE"
+  else
+    echo "  !! build/install failed -- AltTab not (re)installed. See output above."
+  fi
+}
+
+if ! launchctl list | grep -q "$ALTTAB_LABEL"; then
+  echo "  Building and installing AltTab..."
+  alttab_build_and_install
+else
+  CURRENT_CHECKSUM="$(alttab_checksum)"
+  STORED_CHECKSUM="$(cat "$ALTTAB_CHECKSUM_FILE" 2>/dev/null || echo "")"
+  if [ "$CURRENT_CHECKSUM" = "$STORED_CHECKSUM" ]; then
+    echo "  >> already up to date"
+  else
+    echo "  Source changed since last build -- rebuilding and reinstalling..."
+    alttab_build_and_install
+  fi
+fi
+
 # --- Scripts ---
 echo ""
 echo "Configuring scripts/..."

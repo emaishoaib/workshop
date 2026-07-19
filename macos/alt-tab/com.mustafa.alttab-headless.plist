@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mustafa.alttab-headless</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__DEST_DIR__/AltTab.app/Contents/MacOS/AltTab</string>
+        <string>--logs=debug</string>
+    </array>
+    <key>RunAtLoad</key>
+    <string>true</string>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/alttab-headless.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/alttab-headless.log</string>
+</dict>
+</plist>
