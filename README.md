@@ -15,7 +15,7 @@ bash setup.sh
 source ~/.zshrc
 ```
 
-`setup.sh` installs prerequisites (fzf, gh, pypdf, send2trash) and wires the shell config into `~/.zshrc`. Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
+`setup.sh` installs prerequisites (fzf, gh, pypdf, send2trash), wires the shell config into `~/.zshrc`, and configures a global gitignore (`.dbtoolsrc`, used by [`db/`](db/README.md)'s tooling, is always ignored machine-wide, not just where you remember to add it). Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
 
 ---
 
@@ -25,7 +25,8 @@ Each directory has its own README with the full detail — this is just the map.
 
 | Directory | What's there |
 |-----------|--------------|
-| [`shell/`](shell/README.md) | Entry point sourced by `~/.zshrc`, general aliases, prompt — plus the gitignored `work_aliases.zsh` |
+| [`shell/`](shell/README.md) | Entry point sourced by `~/.zshrc`, general aliases, prompt |
+| [`db/`](db/README.md) | Docker/Alembic DB tooling (`ddb`, `dmig`) — config-driven, plus a gitignored slot for employer-specific hook implementations |
 | [`git/`](git/README.md) | Fzf-powered git functions: branch, rebase, push, PR checkout, and a GitHub/SSH helper (`gtools`) |
 | [`hammerspoon/`](hammerspoon/README.md) | macOS automation — hotkeys, Finder shortcuts, login hooks |
 | [`vscode/`](vscode/README.md) | Synced settings and keybindings, the extension list, and two custom extensions |

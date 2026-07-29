@@ -44,6 +44,32 @@ else
   echo "  >> added source line to ~/.zshrc"
 fi
 
+# --- Global gitignore ---
+echo ""
+echo "Configuring global gitignore..."
+
+GLOBAL_GITIGNORE="$(git config --global core.excludesfile)"
+if [ -z "$GLOBAL_GITIGNORE" ]; then
+  GLOBAL_GITIGNORE="$HOME/.gitignore_global"
+  git config --global core.excludesfile "$GLOBAL_GITIGNORE"
+  echo "  >> set core.excludesfile to $GLOBAL_GITIGNORE"
+fi
+GLOBAL_GITIGNORE="${GLOBAL_GITIGNORE/#\~/$HOME}"
+
+touch "$GLOBAL_GITIGNORE"
+if grep -qxF ".dbtoolsrc" "$GLOBAL_GITIGNORE" 2>/dev/null; then
+  echo "  >> .dbtoolsrc already globally ignored"
+else
+  # A file with no trailing newline (common — many editors don't force one)
+  # would otherwise get our new line glued onto its last line instead of
+  # starting a fresh one, silently corrupting an existing pattern.
+  if [ -s "$GLOBAL_GITIGNORE" ] && [ -n "$(tail -c1 "$GLOBAL_GITIGNORE")" ]; then
+    echo "" >> "$GLOBAL_GITIGNORE"
+  fi
+  echo ".dbtoolsrc" >> "$GLOBAL_GITIGNORE"
+  echo "  >> added .dbtoolsrc to $GLOBAL_GITIGNORE (see db/README.md)"
+fi
+
 # --- Claude ---
 echo ""
 echo "Configuring ~/.claude/CLAUDE.md..."
