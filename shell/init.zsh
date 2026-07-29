@@ -23,6 +23,8 @@ source "$WORKSHOP/git/functions.zsh"
 source "$WORKSHOP/cmux/functions.zsh"
 source "$WORKSHOP/shell/aliases.zsh"
 source "$WORKSHOP/shell/prompt.zsh"
+source "$WORKSHOP/db/db-tools.zsh"
 
-# Not version controlled — see .gitignore
-[ -f "$WORKSHOP/local_aliases.zsh" ] && source "$WORKSHOP/local_aliases.zsh"
+# Machine-specific hook implementations — not version controlled, see
+# db/README.md and .gitignore
+[ -f "$WORKSHOP/db/local.zsh" ] && source "$WORKSHOP/db/local.zsh"
