@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gcloud projects get-iam-policy *)",
+      "Bash(gcloud run services *)",
+      "Bash(git fetch:*)",
+      "Bash(git log:*)",
+      "Bash(git merge-base:*)",
+      "Bash(python3 -c:*)",
+      "mcp__wht__logs_query",
+      "mcp__wht__db_describe_table",
+      "mcp__wht__list_resources"
+    ]
+  }
+}

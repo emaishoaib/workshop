@@ -83,6 +83,33 @@ else
   echo "  >> symlinked to $WORKSHOP_DIR/ai/CLAUDE.md"
 fi
 
+# --- Claude permissions ---
+echo ""
+echo "Configuring ~/.claude/settings.json permissions..."
+
+if ! command -v jq &>/dev/null; then
+  echo "  Installing jq..."
+  brew install jq
+fi
+
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+REPO_SETTINGS="$WORKSHOP_DIR/ai/settings.json"
+
+[ -f "$CLAUDE_SETTINGS" ] || echo '{}' > "$CLAUDE_SETTINGS"
+
+TMP="$(mktemp)"
+jq -s '
+  .[0] * {
+    "permissions": (
+      (.[0].permissions // {}) * {
+        "allow": ((.[0].permissions.allow // []) + (.[1].permissions.allow // []) | unique)
+      }
+    )
+  }
+' "$CLAUDE_SETTINGS" "$REPO_SETTINGS" > "$TMP" && mv "$TMP" "$CLAUDE_SETTINGS"
+
+echo "  >> merged $(jq '.permissions.allow | length' "$REPO_SETTINGS") allowlist entries"
+
 # --- VS Code ---
 echo ""
 echo "Configuring VS Code user settings..."

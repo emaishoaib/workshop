@@ -24,6 +24,13 @@ been made.
 Keep PR descriptions concise. Cover what was introduced, why it exists, and 
 any notable side changes. No headers, no fluff.
 
+## Git
+
+When running git commands in a directory other than the current working 
+directory, use `git -C <dir> <command>` rather than `cd <dir> && git <command>`. 
+The latter triggers a Claude Code permission prompt (cd-then-git can execute 
+untrusted hooks from the target directory), even for read-only commands.
+
 ## Skills
 
 When I say `capture`, run the capture skill at ~/Documents/notes/skills/capture.md  
