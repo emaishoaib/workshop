@@ -121,50 +121,60 @@ gsmod() {
   fi
 }
 
-# Remove a stale git index lock (git process crashed/killed mid-operation)
-# If no lock is found relative to the cwd, search upward for the nearest one
-# and confirm before deleting it.
-gunlock() {
-  local lockfile=""
+# Remove stale git locks (git process crashed/killed mid-operation, or a
+# stash pop/drop that died partway through). Checks index.lock and
+# refs/stash.lock. If none are found relative to the cwd, search upward
+# for the nearest repo with one and confirm before deleting it.
+greset() {
+  local -a lock_names=("index.lock" "refs/stash.lock")
+  local -a found=()
 
   # Preferred path: ask git itself where the current repo's git dir is
   # (handles worktrees/submodules correctly).
   local gitdir
   gitdir=$(git rev-parse --absolute-git-dir 2>/dev/null)
-  if [[ -n "$gitdir" && -f "$gitdir/index.lock" ]]; then
-    lockfile="$gitdir/index.lock"
+  if [[ -n "$gitdir" ]]; then
+    local name
+    for name in "${lock_names[@]}"; do
+      [[ -f "$gitdir/$name" ]] && found+=("$gitdir/$name")
+    done
   fi
 
-  # Fallback: not inside a recognized repo (or no lock there) — walk up
-  # parent directories looking for any .git/index.lock.
-  if [[ -z "$lockfile" ]]; then
+  # Fallback: not inside a recognized repo (or no locks there) — walk up
+  # parent directories looking for any matching lock under .git.
+  if [[ ${#found[@]} -eq 0 ]]; then
     local dir="$PWD"
     while [[ "$dir" != "/" ]]; do
-      if [[ -f "$dir/.git/index.lock" ]]; then
-        lockfile="$dir/.git/index.lock"
-        break
-      fi
+      local name
+      for name in "${lock_names[@]}"; do
+        [[ -f "$dir/.git/$name" ]] && found+=("$dir/.git/$name")
+      done
+      [[ ${#found[@]} -gt 0 ]] && break
       dir=$(dirname "$dir")
     done
   fi
 
-  if [[ -z "$lockfile" ]]; then
-    echo "gunlock: no index.lock found in $PWD or any parent directory."
+  if [[ ${#found[@]} -eq 0 ]]; then
+    echo "greset: no index.lock or refs/stash.lock found in $PWD or any parent directory."
     return 1
   fi
 
-  if [[ "$lockfile" != "$PWD/.git/index.lock" ]]; then
-    echo "gunlock: no lock file at $PWD/.git/index.lock"
-    echo "gunlock: found one at $lockfile"
-    read "confirm?Delete this lock file instead? [y/N] "
+  if [[ -z "$gitdir" || "${found[1]}" != "$gitdir"/* ]]; then
+    echo "greset: no lock file at $PWD/.git"
+    echo "greset: found:"
+    printf '  %s\n' "${found[@]}"
+    read "confirm?Delete these lock file(s) instead? [y/N] "
     if [[ "$confirm" != [yY] ]]; then
-      echo "gunlock: aborted."
+      echo "greset: aborted."
       return 1
     fi
   fi
 
-  rm -f "$lockfile"
-  echo "gunlock: removed $lockfile"
+  local f
+  for f in "${found[@]}"; do
+    rm -f "$f"
+    echo "greset: removed $f"
+  done
 }
 
 # Reset helpers
@@ -268,7 +278,7 @@ ghelp() {
   echo "  gres hard                fuzzy-pick a commit and git reset --hard to it"
   echo "  gsmod                    git submodule"
   echo "  gsmod reset              sync all submodules to the commit pinned by the parent repo (git submodule update --init)"
-  echo "  gunlock                  remove a stale git index lock; if not found in cwd, searches upward and confirms before deleting"
+  echo "  greset                   remove stale git locks (index.lock, refs/stash.lock); if not found in cwd, searches upward and confirms before deleting"
   echo "  grbe                     git rebase"
   echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
   echo "  grbe preview             fuzzy-pick a commit (vs default branch) to observe in VS Code"
