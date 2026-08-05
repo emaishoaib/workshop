@@ -34,6 +34,7 @@ Each directory has its own README with the full detail — this is just the map.
 | [`raycast/`](raycast/README.md) | Raycast extension for jumping to an open cmux workspace by name. Requires signing in to Raycast; see its README for the (manual) build/import steps |
 | [`ai/`](ai/CLAUDE.md) | Global Claude instructions, symlinked to `~/.claude/CLAUDE.md` so changes stay version-controlled |
 | [`macos/manual-setup.md`](macos/manual-setup.md) | macOS settings that can't be automated — check this on any new machine |
+| [`macos/screen-recording-internal-audio.md`](macos/screen-recording-internal-audio.md) | Free screen recording with internal computer audio, using BlackHole |
 | [`scripts/`](scripts/README.md) | Standalone utility scripts, on `$PATH` automatically via `shell/init.zsh` |
 
 ---
