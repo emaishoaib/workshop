@@ -39,7 +39,7 @@ brew install gh && gh auth login
 | `grbe onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `grbe all` | Interactive rebase over every commit on the current branch vs the default branch — no guessing a commit count |
 | `gtools` | Interactive GitHub + SSH helper — fzf-pick to create repos, list repos, clone, manage SSH keys |
-| `gunlock` | Remove a stale git index lock (`rm -f .git/index.lock`) — fixes "Another git process seems to be running" after a crashed/killed git process |
+| `greset` | Remove stale git locks (`index.lock`, `refs/stash.lock`) — fixes "Another git process seems to be running" or "Cannot save the current status" after a crashed/killed git process or interrupted stash |
 | `ghelp` | Print all available commands and aliases |
 
 ## `gtools`
