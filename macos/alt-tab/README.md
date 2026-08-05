@@ -81,6 +81,7 @@ After that, AltTab starts silently at every login — no icon anywhere, just the
 - Press Alt+`<key>`: should cycle only the active app's windows.
 - Check Activity Monitor / `ps aux | grep AltTab`: should show one AltTab process, no Dock icon, no menu bar item.
 - If either shortcut doesn't fire, check `/tmp/alttab-headless.log` for errors — most likely cause is Accessibility or Screen Recording permission needing re-granting (see "Permissions" above).
+- If Alt+`<key>` works *most* of the time but occasionally does nothing, it's likely a conflicting macOS system shortcut on the same key combo (e.g. "Move focus to next window") silently swallowing the keypress — see `../manual-setup.md` ("reassign, don't just disable"). Unticking the conflicting shortcut in System Settings is not enough; it needs to be reassigned to a different combo.
 
 ## Rebuilding after changes
 
