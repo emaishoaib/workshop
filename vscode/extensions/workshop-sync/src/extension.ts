@@ -12,7 +12,7 @@ function getExtensionsList(): string[] {
 
 function getExtensionsFilePath(): string | null {
     const config = vscode.workspace.getConfiguration('workshopSync');
-    const repoPath = config.get<string>('repoPath', '~/Documents_Public/repos_personal/workshop');
+    const repoPath = config.get<string>('repoPath', '~/docs/repos_personal/workshop');
     const expanded = repoPath.replace(/^~/, os.homedir());
     const filePath = path.join(expanded, 'vscode', 'extensions.txt');
 
@@ -48,4 +48,4 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 }
 
-export function deactivate(): void {}
+export function deactivate(): void { }

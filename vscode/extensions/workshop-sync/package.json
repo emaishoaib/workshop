@@ -20,7 +20,7 @@
       "properties": {
         "workshopSync.repoPath": {
           "type": "string",
-          "default": "~/Documents_Public/repos/workshop",
+          "default": "~/docs/repos/workshop",
           "description": "Path to your workshop repo"
         }
       }

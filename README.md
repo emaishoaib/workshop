@@ -9,8 +9,8 @@ A personal collection of macOS automation scripts, AI agent tooling, and anythin
 # New machine setup
 
 ```bash
-git clone git@github.com:mustafa.shoaib/workshop.git ~/Documents_Public/repos/workshop
-cd ~/Documents_Public/repos/workshop
+git clone git@github.com:mustafa.shoaib/workshop.git ~/docs/repos/workshop
+cd ~/docs/repos/workshop
 bash setup.sh
 source ~/.zshrc
 ```
