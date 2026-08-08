@@ -168,7 +168,7 @@ Once the highlights are approved, go through each one at a time. For each,
 present:
 
 1. **The file it maps to** — look at existing markdown files in
-   `~/Documents_Public/notes/`.
+   `~/docs/notes/`.
 2. **The full content** — exactly as it will be written, in the format
    appropriate for that file (see Step 3).
 
@@ -287,7 +287,7 @@ For each moment found, propose:
 - A draft note with the flavor specific to that principle
 
 Present the full proposal and wait for approval before writing to
-`~/Documents_Public/notes/behavioral.md`.
+`~/docs/notes/behavioral.md`.
 
 If no behavioral aspects are present, skip this step silently.
 

@@ -5,10 +5,10 @@ VS Code user settings, kept here so they're version-controlled and consistent ac
 This is handled automatically by `setup.sh`, but to wire it up manually:
 
 ```bash
-ln -sf ~/Documents_Public/repos/workshop/vscode/settings.json \
+ln -sf ~/docs/repos/workshop/vscode/settings.json \
   ~/Library/Application\ Support/Code/User/settings.json
 
-ln -sf ~/Documents_Public/repos/workshop/vscode/keybindings.json \
+ln -sf ~/docs/repos/workshop/vscode/keybindings.json \
   ~/Library/Application\ Support/Code/User/keybindings.json
 ```
 
@@ -37,7 +37,7 @@ Config:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `workshopSync.repoPath` | `~/Documents_Public/repos/workshop` | Path to the workshop repo |
+| `workshopSync.repoPath` | `~/docs/repos/workshop` | Path to the workshop repo |
 
 ## `vscode/extensions/python-codelens/`
 

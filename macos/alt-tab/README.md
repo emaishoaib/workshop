@@ -13,7 +13,7 @@ The one piece of UI that remains is a small first-run permissions window (Access
 
 ## Origin
 
-This is a fork of [lwouis/alt-tab-macos](https://github.com/lwouis/alt-tab-macos), diverged from upstream release **v11.3.0** (commit `9fadf36b`). The fork itself lives at `emaishoaib/alt-tab-macos` on GitHub; a standalone clone of it (with both `origin` and `upstream` remotes configured) still exists on disk at `~/Documents_Public/repos/alt-tab-macos` for exactly the purpose described below. **That clone is a reference copy only** — it is not kept in sync with the actual source of truth, which is `src/` in *this* directory (`~/Documents_Public/repos/workshop/macos/alt-tab/`). Edit files there.
+This is a fork of [lwouis/alt-tab-macos](https://github.com/lwouis/alt-tab-macos), diverged from upstream release **v11.3.0** (commit `9fadf36b`). The fork itself lives at `emaishoaib/alt-tab-macos` on GitHub; a standalone clone of it (with both `origin` and `upstream` remotes configured) still exists on disk at `~/docs/repos/alt-tab-macos` for exactly the purpose described below. **That clone is a reference copy only** — it is not kept in sync with the actual source of truth, which is `src/` in *this* directory (`~/docs/repos/workshop/macos/alt-tab/`). Edit files there.
 
 Three local commits on the standalone clone mark the start of this build's divergence from upstream, before the bulk of the work moved here and stopped being tracked commit-by-commit in that clone:
 
@@ -30,9 +30,9 @@ This is a fork of an **actively maintained** project. When a macOS update breaks
 When something breaks after a macOS update:
 
 1. Check upstream's recent commits and releases for a fix: [github.com/lwouis/alt-tab-macos/commits](https://github.com/lwouis/alt-tab-macos/commits/master) and [releases](https://github.com/lwouis/alt-tab-macos/releases). Search for the API name, error message, or symptom.
-2. If you (or an AI assistant) have shell access to `~/Documents_Public/repos/alt-tab-macos`, you can pull upstream's history directly and diff against it:
+2. If you (or an AI assistant) have shell access to `~/docs/repos/alt-tab-macos`, you can pull upstream's history directly and diff against it:
    ```bash
-   cd ~/Documents_Public/repos/alt-tab-macos
+   cd ~/docs/repos/alt-tab-macos
    git fetch upstream
    git log v11.3.0..upstream/master --oneline    # everything upstream has shipped since this fork's base
    git log --oneline --all -S"SomeAPIName"       # find the commit that touched a specific API
@@ -50,7 +50,7 @@ Code signing is ad-hoc, which means these permissions typically need re-granting
 
 ## Where things live
 
-Everything lives directly in this directory (`~/Documents_Public/repos/workshop/macos/alt-tab/`) — there's no nested project folder anymore (see CHANGELOG.md, "Flattened directory structure").
+Everything lives directly in this directory (`~/docs/repos/workshop/macos/alt-tab/`) — there's no nested project folder anymore (see CHANGELOG.md, "Flattened directory structure").
 
 - `src/` — the source. This is what you edit.
 - `Package.swift` — SwiftPM manifest, the build definition. There's no `.xcodeproj`.
@@ -68,7 +68,7 @@ The workshop root `setup.sh` handles this automatically on every run: it checks 
 To do it manually instead:
 
 ```bash
-cd ~/Documents_Public/repos/workshop/macos/alt-tab
+cd ~/docs/repos/workshop/macos/alt-tab
 ./build.sh
 ./install.sh
 ```
