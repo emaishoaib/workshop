@@ -42,6 +42,7 @@ brew install gh && gh auth login
 | `grbe preview` | Fuzzy-pick a commit from those on the current branch vs the default branch, and surface it in VS Code for observation |
 | `grbe onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `grbe all` | Interactive rebase over every commit on the current branch vs the default branch — no guessing a commit count |
+| `grbe fix` | Non-interactively squash every `fixup!` commit into its target vs the default branch. On conflict, squashes as many as it safely can and reports the first `fixup!` commit that actually conflicts, leaving the rest untouched. Bails out (no merge commits supported) if the branch has any |
 | `grbe -N` | Interactive rebase over the last N commits (`HEAD~N`), regardless of whether they've been pushed to origin — e.g. `grbe -3`. Mirrors `glog -N` |
 | `gtools` | Interactive GitHub + SSH helper — fzf-pick to create repos, list repos, clone, manage SSH keys |
 | `greset` | Remove stale git locks (`index.lock`, `refs/stash.lock`) — fixes "Another git process seems to be running" or "Cannot save the current status" after a crashed/killed git process or interrupted stash |
