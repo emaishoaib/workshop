@@ -334,7 +334,9 @@ ghelp() {
   echo "  greset                   remove stale git locks (index.lock, refs/stash.lock); if not found in cwd, searches upward and confirms before deleting"
   echo "  grbe                     git rebase"
   echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
-  echo "  grbe preview             fuzzy-pick a commit (vs default branch) to observe in VS Code"
+  echo "  grbe edit                fuzzy-pick a commit (vs default branch) to edit in VS Code"
+  echo "  grbe done                finish a grbe edit session: commits your changes and continues if you made"
+  echo "                           any, otherwise discards and aborts (same as making no changes)"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  grbe all                 interactive rebase over every commit on the current branch vs the default branch"
   echo "  grbe fix                 non-interactively squash all fixup! commits vs the default branch; on conflict, squashes as many as it safely can and reports the first one that conflicts (no merge commits)"
@@ -371,16 +373,75 @@ glog() {
 # Rebase helpers
 # (no args):       git rebase
 # branch:          fuzzy-pick a branch, interactive rebase commits not in that branch
-# preview:         fuzzy-pick a commit (vs default branch) to observe in VS Code
-# done:            finish a preview session (abort rebase + restore stash)
+# edit:            fuzzy-pick a commit (vs default branch) to edit in VS Code
+# done:            finish a grbe edit session — if you changed anything, commits those changes
+#                  (reusing the original commit's message) and continues the rebase; if you
+#                  didn't, discards and aborts, restoring the stash if one was made
 # onto:            fuzzy-pick a branch and fork point (sha), then rebase onto it
 # all:              interactive rebase over every commit on the current branch vs the default branch
 # -N:               interactive rebase over the last N commits (HEAD~N), pushed or not — e.g. grbe -3
+
+# Compares the working tree against a commit's snapshot for exactly the paths
+# that commit touched (relative to its parent $2). Used by `grbe done` to tell
+# whether you actually edited anything during a `grbe edit` session.
+_grbe_worktree_matches() {
+  local sha="$1" base="$2"
+  local chg_status fpath fpath2
+  while IFS=$'\t' read -r chg_status fpath fpath2; do
+    case "$chg_status" in
+      D*)
+        [ -e "$fpath" ] && return 1
+        ;;
+      R*)
+        [ -e "$fpath" ] && return 1
+        [ -e "$fpath2" ] || return 1
+        cmp -s <(git cat-file -p "${sha}:${fpath2}" 2>/dev/null) "$fpath2" || return 1
+        ;;
+      *)
+        [ -e "$fpath" ] || return 1
+        cmp -s <(git cat-file -p "${sha}:${fpath}" 2>/dev/null) "$fpath" || return 1
+        ;;
+    esac
+  done < <(git diff --name-status "$base" "$sha")
+  return 0
+}
+
+# git rebase --abort refuses to run if any untracked file would be overwritten
+# restoring orig-head — which happens any time the commit you were observing/
+# editing added a new file (it's untracked in the working tree post-split).
+# Before aborting, clear away only the untracked files that are byte-identical
+# to what orig-head already has at that path, since abort would recreate them
+# unchanged anyway. Anything that doesn't match is left alone, so a genuine
+# conflict still fails loudly instead of silently discarding real work.
+_grbe_safe_abort() {
+  local rebase_dir=".git/rebase-merge"
+  [ -d "$rebase_dir" ] || rebase_dir=".git/rebase-apply"
+  local orig_head
+  orig_head=$(cat "$rebase_dir/orig-head" 2>/dev/null)
+
+  if [ -n "$orig_head" ]; then
+    local line fpath
+    git status --porcelain | while IFS= read -r line; do
+      case "$line" in
+        '?? '*)
+          fpath="${line#\?\? }"
+          if git cat-file -e "${orig_head}:${fpath}" 2>/dev/null; then
+            cmp -s <(git cat-file -p "${orig_head}:${fpath}" 2>/dev/null) "$fpath" 2>/dev/null \
+              && rm -f "$fpath"
+          fi
+          ;;
+      esac
+    done
+  fi
+
+  git rebase --abort
+}
+
 grbe() {
   local default_branch
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
 
-  if [ "$1" = "preview" ]; then
+  if [ "$1" = "edit" ]; then
     local sha
     sha=$(
       git log --oneline --color=always HEAD "^origin/$default_branch" \
@@ -388,7 +449,7 @@ grbe() {
           --preview='git show --name-status --format= {1}' \
           --preview-window=right:60% \
           --prompt="Select commit > " \
-          --header="Enter: observe in VS Code  |  Ctrl-C: cancel" \
+          --header="Enter: edit in VS Code  |  Ctrl-C: cancel" \
       | awk '{print $1}'
     )
     [ -z "$sha" ] && return
@@ -398,8 +459,10 @@ grbe() {
     short_sha=$(git rev-parse --short "$sha")
 
     echo ""
-    echo "Note: this starts a rebase to surface the commit's changes — intended for observation only."
-    echo "      To make edits to a commit, run 'grbe branch' instead."
+    echo "Note: this starts a rebase to surface the commit's changes in VS Code."
+    echo "      Edit them if you want to, then run 'grbe done': if you changed"
+    echo "      anything it's committed back in and the rebase continues; if not,"
+    echo "      it's discarded and the rebase is aborted."
     echo ""
 
     local stash_before stash_after
@@ -420,9 +483,10 @@ SCRIPT
     rm -f "$seq_editor"
 
     git reset HEAD~1
+    echo "$sha" > .git/GRBE_EDIT_SHA
 
     echo ""
-    echo "Observing $short_sha — changed files are now visible in VS Code."
+    echo "Editing $short_sha — changed files are now visible in VS Code."
     echo "Run 'grbe done' when finished."
     return
   fi
@@ -619,7 +683,30 @@ SCRIPT
   fi
 
   if [ "$1" = "done" ]; then
-    git rebase --abort
+    if [ -f ".git/GRBE_EDIT_SHA" ]; then
+      local edit_sha edit_base
+      edit_sha=$(cat .git/GRBE_EDIT_SHA)
+      edit_base="${edit_sha}~1"
+      rm -f .git/GRBE_EDIT_SHA
+
+      if _grbe_worktree_matches "$edit_sha" "$edit_base"; then
+        _grbe_safe_abort || return 1
+      else
+        git add -A
+        git commit -C "$edit_sha"
+        git rebase --continue
+        if [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; then
+          echo ""
+          echo "grbe done: your edit was committed, but the rebase stopped while"
+          echo "           replaying later commits — resolve it, then run"
+          echo "           'git rebase --continue' yourself. (stash left in place)"
+          return 1
+        fi
+      fi
+    else
+      _grbe_safe_abort || return 1
+    fi
+
     if [ -f ".git/GRBE_DELTA_STASHED" ]; then
       rm -f ".git/GRBE_DELTA_STASHED"
       git stash pop

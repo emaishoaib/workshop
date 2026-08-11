@@ -39,7 +39,8 @@ brew install gh && gh auth login
 | `gsmod reset` | Sync all submodules to the commit pinned by the parent repo (`git submodule update --init`) — fixes the "S" (submodule with new commits) indicator in VS Code |
 | `grbe` | `git rebase` — passes all arguments through directly |
 | `grbe branch` | Fuzzy-pick a local branch, then interactive rebase over commits on current branch not in that branch |
-| `grbe preview` | Fuzzy-pick a commit from those on the current branch vs the default branch, and surface it in VS Code for observation |
+| `grbe edit` | Fuzzy-pick a commit from those on the current branch vs the default branch, and surface it in VS Code to edit |
+| `grbe done` | Finish a `grbe edit` session — if you changed anything, commits it back in (reusing the original commit's message) and continues the rebase; if you didn't, discards and aborts, restoring the stash if one was made |
 | `grbe onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `grbe all` | Interactive rebase over every commit on the current branch vs the default branch — no guessing a commit count |
 | `grbe fix` | Non-interactively squash every `fixup!` commit into its target vs the default branch. On conflict, squashes as many as it safely can and reports the first `fixup!` commit that actually conflicts, leaving the rest untouched. Bails out (no merge commits supported) if the branch has any |
