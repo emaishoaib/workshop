@@ -111,6 +111,30 @@ gpush() {
   fi
 }
 
+# Merge helpers
+# (no args): fuzzy-pick a local branch (excluding current) and merge it into the current branch
+# other args: git merge passthrough (e.g. --abort, --continue)
+gmge() {
+  if [ -z "$1" ]; then
+    local current
+    current=$(git branch --show-current)
+
+    local branch
+    branch=$(git branch | grep -v HEAD | sed 's/^[ *]*//' | grep -v "^$current$" \
+      | fzf \
+          --prompt="Merge into $current > " \
+          --header="Select branch to merge into $current" \
+          --preview='git log --oneline --color=always {1} 2>/dev/null | head -10')
+    [ -z "$branch" ] && return
+    branch=$(echo "$branch" | tr -d '[:space:]')
+
+    git merge "$branch"
+    return
+  fi
+
+  git merge "$@"
+}
+
 # Submodule helpers
 # reset: sync all submodules to the commit pinned by the parent repo (git submodule update --init)
 gsmod() {
@@ -273,6 +297,7 @@ ghelp() {
   echo "  gpush head               fuzzy-pick a remote branch, force-push HEAD to it (--force-with-lease)"
   echo "  gpush head:<branch>      force-push HEAD straight to <branch>, no prompt"
   echo "  gpush new                push a new local branch to origin and set upstream tracking (-u origin HEAD)"
+  echo "  gmge                     fuzzy-pick a branch and merge it into the current branch"
   echo "  gres                     fuzzy-pick a commit and git reset to it (default mode)"
   echo "  gres mixed               fuzzy-pick a commit and git reset --mixed to it"
   echo "  gres hard                fuzzy-pick a commit and git reset --hard to it"

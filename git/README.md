@@ -23,6 +23,8 @@ brew install gh && gh auth login
 | `gcko pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
 | `glog` | Show all commits introduced on current branch (or `-N` for last N, e.g. `glog -5`) |
 | `glog branch` | Fuzzy-pick a local branch to compare against; shows commits on current branch not in the selection |
+| `gmge` | Fuzzy-pick a local branch and merge it into the current branch |
+| `gmge <args>` | `git merge` — passes all arguments through directly (e.g. `gmge --abort`, `gmge --continue`) |
 | `gpush` | `git push` — passes all arguments through directly |
 | `gpush force` | Force-push current branch to its tracked upstream (`git push --force-with-lease`) |
 | `gpush head` | Fuzzy-pick a remote branch, then force-push HEAD to it (`git push origin HEAD:<branch> --force-with-lease`) |
