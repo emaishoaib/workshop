@@ -21,6 +21,8 @@ brew install gh && gh auth login
 | `gcko` | Fuzzy checkout — local branches only |
 | `gcko remote` | Fuzzy checkout — all branches (local + remote) |
 | `gcko pr [number]` | Checkout a PR by number, or fuzzy-pick from open PRs |
+| `gcom` | `git commit` — passes all arguments through directly |
+| `gcom fix` | Fuzzy-pick a commit on the current branch and create a fixup commit for it (`git commit --fixup=<sha>`) from whatever's currently staged |
 | `glog` | Show all commits introduced on current branch (or `-N` for last N, e.g. `glog -5`) |
 | `glog branch` | Fuzzy-pick a local branch to compare against; shows commits on current branch not in the selection |
 | `gmge` | Fuzzy-pick a local branch and merge it into the current branch |

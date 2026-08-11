@@ -78,6 +78,32 @@ gcko() {
   fi
 }
 
+# Commit helpers
+# (no args or normal args): git commit passthrough
+# fix:  fuzzy-pick a commit on the current branch and create a fixup commit for it
+#       (git commit --fixup=<sha>) from whatever's currently staged
+gcom() {
+  if [ "$1" = "fix" ]; then
+    local default_branch
+    default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+
+    local sha
+    sha=$(git log --oneline --color=always HEAD "^origin/$default_branch" \
+      | fzf --ansi --no-sort \
+          --preview='git show --stat --color=always --format= {1} 2>/dev/null; echo; git show --color=always {1} 2>/dev/null' \
+          --preview-window=right:60% \
+          --prompt="Fixup > " \
+          --header="Select commit to create a fixup for" \
+      | awk '{print $1}')
+    [ -z "$sha" ] && return
+
+    git commit --fixup="$sha"
+    return
+  fi
+
+  git commit "$@"
+}
+
 # Force-push current HEAD to a remote branch (git push origin HEAD:<branch> --force-with-lease)
 # force:           force-push current branch to its tracked upstream (--force-with-lease)
 # head:            fuzzy-pick a remote branch to push HEAD to
@@ -288,6 +314,8 @@ ghelp() {
   echo "  gcko                     fuzzy checkout (local only)"
   echo "  gcko remote              fuzzy checkout (local + remote)"
   echo "  gcko pr                  checkout a PR by number or fuzzy-pick"
+  echo "  gcom                     git commit"
+  echo "  gcom fix                 fuzzy-pick a commit and create a fixup commit for it (git commit --fixup=<sha>)"
   echo "  gchy                     git cherry-pick"
   echo "  gchy branch              fuzzy-pick a branch, multi-select its unique commits, cherry-pick them onto the current branch"
   echo "  glog                     show commits on current branch (or -N for last N, e.g. glog -5)"
