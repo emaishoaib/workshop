@@ -337,6 +337,7 @@ ghelp() {
   echo "  grbe preview             fuzzy-pick a commit (vs default branch) to observe in VS Code"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  grbe all                 interactive rebase over every commit on the current branch vs the default branch"
+  echo "  grbe fix                 non-interactively squash all fixup! commits vs the default branch; on conflict, squashes as many as it safely can and reports the first one that conflicts (no merge commits)"
   echo "  grbe -N                  interactive rebase over the last N commits, pushed or not (e.g. grbe -3)"
   echo "  ghelp                    show this help"
 }
@@ -449,6 +450,166 @@ SCRIPT
     base=$(git merge-base HEAD "origin/$default_branch")
     [ -n "$base" ] && git rebase -i --rebase-merges "$base"
     return
+  fi
+
+  if [ "$1" = "fix" ]; then
+    local base
+    base=$(git merge-base HEAD "origin/$default_branch")
+    if [ -z "$base" ]; then
+      echo "grbe fix: could not determine merge-base with origin/$default_branch"
+      return 1
+    fi
+
+    local original_head
+    original_head=$(git rev-parse HEAD)
+
+    # Fast path: try to autosquash every fixup! commit in one shot, no editor.
+    if GIT_SEQUENCE_EDITOR=true GIT_EDITOR=true git rebase --autosquash --rebase-merges "$base" > /dev/null 2>&1; then
+      echo "grbe fix: all fixup! commits squashed cleanly."
+      return 0
+    fi
+    git rebase --abort > /dev/null 2>&1
+
+    if [ -n "$(git log --merges --format='%H' "$base..HEAD")" ]; then
+      echo "grbe fix: this branch has merge commits vs origin/$default_branch."
+      echo "The conflict fallback can't safely rebuild history around merges — resolve it manually via 'grbe all'."
+      return 1
+    fi
+
+    # Capture git's own autosquash-reordered todo (without running it) purely
+    # to learn the order it applies fixup! commits in, and which commit each
+    # one targets (the line immediately above it in that reordered todo).
+    local capture_file capture_editor
+    capture_file=$(mktemp)
+    capture_editor=$(mktemp)
+    cat > "$capture_editor" << 'SCRIPT'
+#!/bin/sh
+cp "$1" "$GRBE_FIX_CAPTURE"
+exit 1
+SCRIPT
+    chmod +x "$capture_editor"
+    GRBE_FIX_CAPTURE="$capture_file" GIT_SEQUENCE_EDITOR="$capture_editor" \
+      git rebase -i --autosquash --rebase-merges "$base" > /dev/null 2>&1
+    rm -f "$capture_editor"
+
+    local -a fixup_order
+    local -A target_of
+    local prev_sha="" line action short_sha full_sha
+    while IFS= read -r line; do
+      case "$line" in
+        pick\ *|fixup\ *)
+          action="${line%% *}"
+          short_sha="${line#* }"
+          short_sha="${short_sha%% *}"
+          full_sha=$(git rev-parse "$short_sha" 2> /dev/null)
+          [ -z "$full_sha" ] && continue
+          if [ "$action" = "fixup" ]; then
+            fixup_order+=("$full_sha")
+            target_of[$full_sha]="$prev_sha"
+          fi
+          prev_sha="$full_sha"
+          ;;
+      esac
+    done < "$capture_file"
+    rm -f "$capture_file"
+
+    local total=${#fixup_order[@]}
+    if [ "$total" -eq 0 ]; then
+      echo "grbe fix: rebase failed, but no fixup! commits were found — this isn't a fixup conflict."
+      echo "Resolve it manually (e.g. via 'grbe all')."
+      return 1
+    fi
+
+    local -a chron_shas
+    chron_shas=("${(@f)$(git log --reverse --format='%H' "$base..HEAD")}")
+
+    # Reusable sequence editor: fully replaces git's todo with the one we
+    # precompute below for each candidate k.
+    local apply_editor
+    apply_editor=$(mktemp)
+    cat > "$apply_editor" << 'SCRIPT'
+#!/bin/sh
+cp "$GRBE_FIX_TODO" "$1"
+SCRIPT
+    chmod +x "$apply_editor"
+
+    local todo_file
+    todo_file=$(mktemp)
+
+    # Build the rebase todo for squashing the first $1 fixups (by
+    # application order). Every other commit — including any not-yet-tested
+    # fixup! commit — is left exactly where it originally was, so it can
+    # never be dragged into a spurious reorder conflict.
+    _grbe_fix_build_todo() {
+      local keep="$1"
+      local -a wl_sha wl_action
+      wl_sha=("${chron_shas[@]}")
+      local i
+      for ((i = 1; i <= ${#wl_sha[@]}; i++)); do
+        wl_action+=("pick")
+      done
+
+      local j fsha tgt idx_f idx_t
+      for ((j = 1; j <= keep; j++)); do
+        fsha="${fixup_order[$j]}"
+        tgt="${target_of[$fsha]}"
+        idx_f=${wl_sha[(i)$fsha]}
+        wl_sha[$idx_f]=()
+        wl_action[$idx_f]=()
+        idx_t=${wl_sha[(i)$tgt]}
+        wl_sha[$idx_t,$idx_t]=("${wl_sha[$idx_t]}" "$fsha")
+        wl_action[$idx_t,$idx_t]=("${wl_action[$idx_t]}" "fixup")
+      done
+
+      : > "$todo_file"
+      for ((i = 1; i <= ${#wl_sha[@]}; i++)); do
+        echo "${wl_action[$i]} ${wl_sha[$i]}" >> "$todo_file"
+      done
+    }
+
+    local k succeeded_k=0
+    for ((k = 1; k <= total; k++)); do
+      _grbe_fix_build_todo "$k"
+      if GRBE_FIX_TODO="$todo_file" GIT_SEQUENCE_EDITOR="$apply_editor" \
+          git rebase -i "$base" > /dev/null 2>&1; then
+        succeeded_k=$k
+        git reset --hard "$original_head" > /dev/null 2>&1
+      else
+        git rebase --abort > /dev/null 2>&1
+        break
+      fi
+    done
+
+    if [ "$succeeded_k" -gt 0 ]; then
+      _grbe_fix_build_todo "$succeeded_k"
+      GRBE_FIX_TODO="$todo_file" GIT_SEQUENCE_EDITOR="$apply_editor" \
+        git rebase -i "$base" > /dev/null 2>&1
+    fi
+    rm -f "$apply_editor" "$todo_file"
+    unfunction _grbe_fix_build_todo 2> /dev/null
+
+    if [ "$succeeded_k" -eq "$total" ]; then
+      echo "grbe fix: all fixup! commits squashed cleanly."
+      return 0
+    fi
+
+    echo ""
+    if [ "$succeeded_k" -gt 0 ]; then
+      echo "grbe fix: squashed $succeeded_k fixup! commit(s) cleanly:"
+      local i
+      for ((i = 1; i <= succeeded_k; i++)); do
+        echo "  - $(git log -1 --format='%h %s' "${fixup_order[$i]}" 2> /dev/null)"
+      done
+    else
+      echo "grbe fix: no fixup! commits could be squashed automatically."
+    fi
+
+    local problem_sha
+    problem_sha="${fixup_order[$((succeeded_k + 1))]}"
+    echo ""
+    echo "grbe fix: stopped — conflicts squashing fixup! commit: $(git log -1 --format='%h %s' "$problem_sha" 2> /dev/null)"
+    echo "Resolve it manually (e.g. via 'grbe all') before continuing."
+    return 1
   fi
 
   if [[ "$1" =~ ^-[0-9]+$ ]]; then
