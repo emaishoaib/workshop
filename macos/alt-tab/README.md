@@ -13,7 +13,7 @@ The one piece of UI that remains is a small first-run permissions window (Access
 
 ## Origin
 
-This is a fork of [lwouis/alt-tab-macos](https://github.com/lwouis/alt-tab-macos), diverged from upstream release **v11.3.0** (commit `9fadf36b`). The fork itself lives at `emaishoaib/alt-tab-macos` on GitHub; a standalone clone of it (with both `origin` and `upstream` remotes configured) still exists on disk at `~/docs/repos/alt-tab-macos` for exactly the purpose described below. **That clone is a reference copy only** — it is not kept in sync with the actual source of truth, which is `src/` in *this* directory (`~/docs/repos/workshop/macos/alt-tab/`). Edit files there.
+This is a fork of [lwouis/alt-tab-macos](https://github.com/lwouis/alt-tab-macos), diverged from upstream release **v11.3.0** (commit `9fadf36b`). The fork itself lives at `emaishoaib/alt-tab-macos` on GitHub; a standalone clone of it (with both `origin` and `upstream` remotes configured) still exists on disk at `~/docs/repos/alt-tab-macos` for exactly the purpose described below. **That clone is a reference copy only** — it is not kept in sync with the actual source of truth, which is `src/` in *this* directory (`<repo root>/macos/alt-tab/`). Edit files there.
 
 Three local commits on the standalone clone mark the start of this build's divergence from upstream, before the bulk of the work moved here and stopped being tracked commit-by-commit in that clone:
 
@@ -50,7 +50,7 @@ Code signing is ad-hoc, which means these permissions typically need re-granting
 
 ## Where things live
 
-Everything lives directly in this directory (`~/docs/repos/workshop/macos/alt-tab/`) — there's no nested project folder anymore (see CHANGELOG.md, "Flattened directory structure").
+Everything lives directly in this directory (`<repo root>/macos/alt-tab/`) — there's no nested project folder anymore (see CHANGELOG.md, "Flattened directory structure").
 
 - `src/` — the source. This is what you edit.
 - `Package.swift` — SwiftPM manifest, the build definition. There's no `.xcodeproj`.
@@ -68,7 +68,7 @@ The workshop root `setup.sh` handles this automatically on every run: it checks 
 To do it manually instead:
 
 ```bash
-cd ~/docs/repos/workshop/macos/alt-tab
+cd <repo root>/macos/alt-tab
 ./build.sh
 ./install.sh
 ```
