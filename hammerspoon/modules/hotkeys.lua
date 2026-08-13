@@ -48,3 +48,13 @@ end)
 hs.hotkey.bind({"cmd", "alt"}, "p", function()
     hs.sound.getByName("Glass"):play()
 end)
+
+-- NOT bound here: cmd+alt+s ("Save picture of selected area as a file",
+-- i.e. cmd+shift+4) and cmd+alt+r ("Screenshot and recording options",
+-- i.e. cmd+shift+5). These used to be a Hammerspoon module (modules/system.lua,
+-- removed) that re-posted cmd+shift+4/5 on cmd+alt+s/r. They stopped firing
+-- after an unrelated BetterMouse update, cause not confirmed — as a stopgap
+-- they're now remapped directly inside BetterMouse instead. Its exported
+-- config, including this remap, is version-controlled at
+-- ../../macos/bettermouse/better_mouse_config.plist. Revisit bringing this
+-- back to Hammerspoon once the BetterMouse conflict is understood.
