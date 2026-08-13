@@ -13,32 +13,17 @@ The one piece of UI that remains is a small first-run permissions window (Access
 
 ## Origin
 
-This is a fork of [lwouis/alt-tab-macos](https://github.com/lwouis/alt-tab-macos), diverged from upstream release **v11.3.0** (commit `9fadf36b`). The fork itself lives at `emaishoaib/alt-tab-macos` on GitHub; a standalone clone of it (with both `origin` and `upstream` remotes configured) still exists on disk at `~/docs/repos/alt-tab-macos` for exactly the purpose described below. **That clone is a reference copy only** — it is not kept in sync with the actual source of truth, which is `src/` in *this* directory (`<repo root>/macos/alt-tab/`). Edit files there.
-
-Three local commits on the standalone clone mark the start of this build's divergence from upstream, before the bulk of the work moved here and stopped being tracked commit-by-commit in that clone:
-
-1. `always pro` — `LicenseManager.computeState()` hardcoded to always return `.pro`, skipping license validation entirely.
-2. `make app headless` — first pass removing menu bar/Settings-window entry points.
-3. `removing unnecessary features and code` — the first big stripping pass (Day-X upsell windows, menu bar, etc.).
-
-Everything after that — the large majority of what makes this build what it is today — happened directly in this repo's copy of the source, without being committed back to the standalone clone. `CHANGELOG.md` is the detailed, file-by-file record of that work.
+This build is based on / originally derived from [lwouis/alt-tab-macos](https://github.com/lwouis/alt-tab-macos), diverged from upstream release **v11.3.0** (commit `9fadf36b`). `src/` in *this* directory (`<repo root>/macos/alt-tab/`) is the only copy of the source, and has diverged heavily from upstream: entire subsystems (Settings UI, search, trackpad gestures, preview panel, licensing/Pro upsell, auto-updater, telemetry, CLI protocol, localization, unit tests) have been stripped out, leaving just the two-shortcut headless switcher described above. `CHANGELOG.md` is the detailed, file-by-file record of that work.
 
 ## Why this matters: diagnosing future breakage
 
-This is a fork of an **actively maintained** project. When a macOS update breaks something here (a permission API changes behavior, a private API upstream relies on gets locked down, a deprecated API finally gets removed, etc.), the upstream project has very likely already hit the same problem and shipped a fix — AltTab has a large user base and a maintainer who tracks macOS betas closely.
+This build is based on an **actively maintained** project. When a macOS update breaks something here (a permission API changes behavior, a private API upstream relies on gets locked down, a deprecated API finally gets removed, etc.), the upstream project has very likely already hit the same problem and shipped a fix — AltTab has a large user base and a maintainer who tracks macOS betas closely.
 
 When something breaks after a macOS update:
 
 1. Check upstream's recent commits and releases for a fix: [github.com/lwouis/alt-tab-macos/commits](https://github.com/lwouis/alt-tab-macos/commits/master) and [releases](https://github.com/lwouis/alt-tab-macos/releases). Search for the API name, error message, or symptom.
-2. If you (or an AI assistant) have shell access to `~/docs/repos/alt-tab-macos`, you can pull upstream's history directly and diff against it:
-   ```bash
-   cd ~/docs/repos/alt-tab-macos
-   git fetch upstream
-   git log v11.3.0..upstream/master --oneline    # everything upstream has shipped since this fork's base
-   git log --oneline --all -S"SomeAPIName"       # find the commit that touched a specific API
-   ```
-3. Find the equivalent file in this repo's `src/` (paths mostly still match upstream's `src/` layout, minus everything documented as deleted in `CHANGELOG.md`) and apply the equivalent fix by hand — this build has diverged enough from upstream (see `CHANGELOG.md`) that a raw `git merge`/`cherry-pick` from upstream is unlikely to apply cleanly.
-4. If the affected file was deleted here (check `CHANGELOG.md`), the fix may not apply at all — confirm the feature it's fixing still exists in this build before spending time on it.
+2. Find the equivalent file in this repo's `src/` (paths mostly still match upstream's `src/` layout, minus everything documented as deleted in `CHANGELOG.md`) and apply the equivalent fix by hand — this build has diverged enough from upstream (see `CHANGELOG.md`) that a raw `git merge`/`cherry-pick` from upstream is unlikely to apply cleanly.
+3. If the affected file was deleted here (check `CHANGELOG.md`), the fix may not apply at all — confirm the feature it's fixing still exists in this build before spending time on it.
 
 An AI assistant working in this repo should be told explicitly to check the upstream repo (`https://github.com/lwouis/alt-tab-macos`) when diagnosing anything that looks like a macOS-version-specific regression, rather than guessing at a fix from first principles.
 
