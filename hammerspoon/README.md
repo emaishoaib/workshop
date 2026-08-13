@@ -9,6 +9,12 @@ Lua scripts for [Hammerspoon](https://www.hammerspoon.org/) — macOS automation
 | `⌘⇧T` | Finder frontmost | Open current Finder folder in iTerm2 (if installed) or Terminal |
 | `⌘↩` | Finder frontmost | Open selected item (`cmd+o`) |
 | `⌃L` | Global | Lock screen |
+| `⌘⌥P` | Global | Play a sound (media/attention cue) |
+
+`⌘⌥S` (save picture of selected area as a file) and `⌘⌥R` (screenshot and
+recording options) are *not* handled here right now — see the note in
+[`modules/hotkeys.lua`](modules/hotkeys.lua) and
+[`../macos/bettermouse/README.md`](../macos/bettermouse/README.md) for why.
 
 ## Setup
 
