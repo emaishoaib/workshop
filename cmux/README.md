@@ -13,8 +13,8 @@ To wire it up manually:
 
 ```bash
 mkdir -p ~/.config/cmux ~/.config/ghostty
-ln -sf ~/docs/repos/workshop/cmux/cmux.json ~/.config/cmux/cmux.json
-ln -sf ~/docs/repos/workshop/cmux/ghostty/config ~/.config/ghostty/config
+ln -sf <repo root>/cmux/cmux.json ~/.config/cmux/cmux.json
+ln -sf <repo root>/cmux/ghostty/config ~/.config/ghostty/config
 ```
 
 ## cmux CLI on PATH
