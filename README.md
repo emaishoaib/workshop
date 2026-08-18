@@ -30,6 +30,7 @@ Each directory has its own README with the full detail — this is just the map.
 | [`git/`](git/README.md) | Fzf-powered git functions: branch, rebase, push, PR checkout, and a GitHub/SSH helper (`gtools`) |
 | [`hammerspoon/`](hammerspoon/README.md) | macOS automation — hotkeys, Finder shortcuts, login hooks |
 | [`vscode/`](vscode/README.md) | Synced settings and keybindings, the extension list, and two custom extensions |
+| [`chrome/keepa-lookup/`](chrome/keepa-lookup/README.md) | Chrome extension — one-click jump from an Amazon listing to its Keepa price-history page |
 | [`cmux/`](cmux/README.md) | Config for the cmux terminal — app settings, Ghostty theme, PATH setup, socket access mode |
 | [`raycast/`](raycast/README.md) | Raycast extension for jumping to an open cmux workspace by name. Requires signing in to Raycast; see its README for the (manual) build/import steps |
 | [`ai/`](ai/CLAUDE.md) | Global Claude instructions, symlinked to `~/.claude/CLAUDE.md` so changes stay version-controlled |

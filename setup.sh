@@ -302,6 +302,64 @@ step_vscode_extensions() {
   [ "$failed" -eq 0 ]
 }
 
+CHROME_EXT_DIR="$WORKSHOP_DIR/chrome/keepa-lookup"
+# Unpacked extensions' filesystem paths live here, not in the plain
+# "Preferences" file -- it's plain JSON (tamper-hashed, not encrypted), just
+# a separate file from regular settings.
+CHROME_PREFS="$HOME/Library/Application Support/Google/Chrome/Default/Secure Preferences"
+
+# Chrome has no CLI for installing an unpacked extension (unlike `code
+# --install-extension`), nor for reloading one -- both are deliberately
+# click-only, the same protection that blocks silently sideloading one.
+# Best available without turning the profile into an enterprise-managed one:
+#
+# - Not loaded at all: detected by the absolute path showing up verbatim in
+#   the profile's Secure Preferences JSON. If missing, open the Load-unpacked
+#   screen and put the path on the clipboard.
+# - Loaded but stale: Chrome caches the version of the service worker it has
+#   registered (service_worker_registration_info.version, next to that same
+#   path) -- if that doesn't match manifest.json on disk, source has changed
+#   since the last manual reload. Flagged, not fixed: nothing short of the
+#   heavier options (a standing remote-debugging port, or a companion
+#   extension carrying the broad "management" permission) can click the
+#   reload button from a shell script.
+step_chrome_keepa_lookup() {
+  if [ ! -d "/Applications/Google Chrome.app" ]; then
+    step_detail "Chrome not installed, skipped"
+    return 0
+  fi
+
+  if [ ! -f "$CHROME_PREFS" ] || ! grep -qF "$CHROME_EXT_DIR" "$CHROME_PREFS"; then
+    printf '%s' "$CHROME_EXT_DIR" | pbcopy 2>/dev/null
+    open -a "Google Chrome" "chrome://extensions" 2>/dev/null
+    step_detail "not loaded yet -- path copied to clipboard"
+    step_warn "Chrome: enable Developer mode, click \"Load unpacked\", paste the path (already on your clipboard)"
+    return 0
+  fi
+
+  if ! command -v jq &>/dev/null; then
+    step_detail "already loaded"
+    return 0
+  fi
+
+  local disk_version loaded_version
+  disk_version="$(jq -r '.version' "$CHROME_EXT_DIR/manifest.json")"
+  loaded_version="$(jq -r --arg path "$CHROME_EXT_DIR" '
+    .extensions.settings
+    | to_entries[]
+    | select(.value.path == $path)
+    | .value.service_worker_registration_info.version // empty
+  ' "$CHROME_PREFS" | head -1)"
+
+  if [ -n "$loaded_version" ] && [ "$loaded_version" != "$disk_version" ]; then
+    open -a "Google Chrome" "chrome://extensions" 2>/dev/null
+    step_detail "loaded v$loaded_version, disk has v$disk_version"
+    step_warn "Chrome: keepa-lookup changed since it was last loaded -- click its reload icon on chrome://extensions"
+  else
+    step_detail "already loaded, up to date"
+  fi
+}
+
 step_cmux() {
   local was_missing=0
 
@@ -450,6 +508,7 @@ run_step "Hammerspoon"        step_hammerspoon
 run_step "Claude permissions" step_claude_permissions
 run_step "VS Code settings"   step_vscode_settings
 run_step "VS Code extensions" step_vscode_extensions
+run_step "Chrome: keepa-lookup" step_chrome_keepa_lookup
 run_step "cmux"                step_cmux
 run_step "AltTab (headless)"  step_alttab
 run_step "Scripts"             step_scripts
