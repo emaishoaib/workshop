@@ -338,6 +338,7 @@ ghelp() {
   echo "  grbe done                finish a grbe edit session: committing any changes made and continuing"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  grbe all                 interactive rebase over every commit on the current branch vs the default branch"
+  echo "  grbe sync                fetch origin, fast-forward local default branch, and rebase current branch onto it"
   echo "  grbe fix                 non-interactively squash all fixup! commits vs the default branch with fallback"
   echo "  grbe -N                  interactive rebase over the last N commits, pushed or not (e.g. grbe -3)"
   echo "  ghelp                    show this help"
@@ -378,6 +379,7 @@ glog() {
 #                  didn't, discards and aborts, restoring the stash if one was made
 # onto:            fuzzy-pick a branch and fork point (sha), then rebase onto it
 # all:              interactive rebase over every commit on the current branch vs the default branch
+# sync:             fetch origin, fast-forward local default branch (no checkout needed), and rebase current branch onto it
 # -N:               interactive rebase over the last N commits (HEAD~N), pushed or not — e.g. grbe -3
 
 # Compares the working tree against a commit's snapshot for exactly the paths
@@ -512,6 +514,20 @@ SCRIPT
     local base
     base=$(git merge-base HEAD "origin/$default_branch")
     [ -n "$base" ] && git rebase -i --rebase-merges "$base"
+    return
+  fi
+
+  if [ "$1" = "sync" ]; then
+    local current
+    current=$(git branch --show-current)
+
+    if [ "$current" = "$default_branch" ]; then
+      git fetch origin "$default_branch"
+      git rebase "origin/$default_branch"
+    else
+      git fetch origin "$default_branch:$default_branch"
+      git rebase "$default_branch"
+    fi
     return
   fi
 
