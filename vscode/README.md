@@ -12,6 +12,10 @@ ln -sf <repo root>/vscode/keybindings.json \
   ~/Library/Application\ Support/Code/User/keybindings.json
 ```
 
+## Keybindings
+
+`Cmd+1`–`Cmd+9` focus the Nth terminal when a terminal has focus (`workbench.action.terminal.focusAtIndex1`–`9`, scoped with `"when": "terminalFocus"`). Scoped rather than global so it doesn't override the default `Cmd+<number>` editor-tab-switching shortcut when focus is in the editor.
+
 ## `vscode/extensions.txt`
 
 A list of installed marketplace extensions, one ID per line. Maintained automatically by the `workshop-sync` extension — any install or uninstall updates this file immediately. Commit the change to keep the repo current.
