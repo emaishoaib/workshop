@@ -1,9 +1,12 @@
+Anthropic.claude-code
 GitHub.vscode-pull-request-github
 charliermarsh.ruff
 eamodio.gitlens
 emaishoaib.python-codelens
 emaishoaib.workshop-sync
 hashicorp.terraform
+ms-azuretools.vscode-containers
+ms-azuretools.vscode-docker
 ms-python.debugpy
 ms-python.python
 ms-python.vscode-pylance
