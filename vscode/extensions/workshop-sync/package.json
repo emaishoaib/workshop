@@ -20,8 +20,8 @@
       "properties": {
         "workshopSync.repoPath": {
           "type": "string",
-          "default": "~/docs/repos/workshop",
-          "description": "Path to your workshop repo"
+          "default": "",
+          "description": "Path to your workshop repo. Leave empty to auto-detect by following the settings.json symlink back to its source (the normal setup) - only set this if that detection doesn't apply to your setup."
         }
       }
     }

@@ -26,6 +26,8 @@ A list of installed marketplace extensions, one ID per line. Maintained automati
 
 A custom VS Code extension that keeps `vscode/extensions.txt` in sync automatically. Writes the full list of non-built-in extensions on startup and on every install/uninstall.
 
+Finds the repo on its own by following the `settings.json` symlink back to its source (`~/Library/Application Support/Code/User/settings.json` on macOS, the OS-equivalent path elsewhere) - no path needs to be configured for the standard `setup.sh`-symlinked setup.
+
 To build and install:
 
 ```bash
@@ -41,7 +43,7 @@ Config:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `workshopSync.repoPath` | `<repo root>` | Path to the workshop repo |
+| `workshopSync.repoPath` | *(empty, auto-detected)* | Manual override - only needed if the settings.json symlink detection doesn't apply to your setup |
 
 ## `vscode/extensions/python-codelens/`
 
