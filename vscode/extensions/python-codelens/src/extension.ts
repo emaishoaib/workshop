@@ -4,6 +4,7 @@ const SYMBOL_PATTERN = /^(\s*)(class|def)\s+(\w+)/;
 
 interface CachedCount {
     count: number;
+    locations: vscode.Location[];
 }
 
 class PythonCodeLens extends vscode.CodeLens {
@@ -102,7 +103,7 @@ export class PythonReferenceLensProvider implements vscode.CodeLensProvider {
         const cacheKey = `${documentUri.toString()}:${lens.range.start.line}:${symbolName}`;
         const cached = this._cache.get(cacheKey);
         if (cached !== undefined) {
-            return this._buildLens(lens, documentUri, symbolPosition, cached.count);
+            return this._buildLens(lens, documentUri, symbolPosition, cached.count, cached.locations);
         }
 
         if (token.isCancellationRequested) {
@@ -128,22 +129,23 @@ export class PythonReferenceLensProvider implements vscode.CodeLensProvider {
 
         const count = references.length;
         if (count > 0) {
-            this._cache.set(cacheKey, { count });
+            this._cache.set(cacheKey, { count, locations: references });
         }
 
-        return this._buildLens(lens, documentUri, symbolPosition, count);
+        return this._buildLens(lens, documentUri, symbolPosition, count, references);
     }
 
     private _buildLens(
         lens: vscode.CodeLens,
         uri: vscode.Uri,
         position: vscode.Position,
-        count: number
+        count: number,
+        locations: vscode.Location[]
     ): vscode.CodeLens {
         lens.command = {
             title: `${count} ${count === 1 ? 'reference' : 'references'}`,
-            command: 'editor.action.findReferences',
-            arguments: [uri, position]
+            command: 'editor.action.showReferences',
+            arguments: [uri, position, locations]
         };
         return lens;
     }

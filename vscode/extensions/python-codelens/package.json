@@ -3,7 +3,7 @@
   "name": "python-codelens",
   "displayName": "Python CodeLens",
   "description": "Show reference counts above Python classes and methods",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "engines": {
     "vscode": "^1.80.0"
   },
