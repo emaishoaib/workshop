@@ -271,13 +271,20 @@ step_vscode_extensions() {
     return 1
   fi
 
-  local already=0 newly=0 failed=0 ext installed_list local_dir
+  local already=0 newly=0 failed=0 ext installed_list local_dir exts
   # --show-versions so local extensions can be compared against their
   # package.json version below -- a bare id match would call a stale local
   # build "already present" and never rebuild it.
   installed_list="$(code --list-extensions --show-versions)"
 
-  while IFS= read -r ext || [ -n "$ext" ]; do
+  # Read every line up front instead of looping with `< "$extensions_file"`
+  # held open on stdin -- a subprocess in the loop body (npm install, during
+  # a local extension rebuild) inherits that same stdin, and if it so much
+  # as peeks at it, the shared read position shifts and corrupts whichever
+  # line the loop reads next.
+  mapfile -t exts < "$extensions_file"
+
+  for ext in "${exts[@]}"; do
     [ -z "$ext" ] && continue
 
     local_dir="$(vscode_local_extension_dir "$ext")"
@@ -308,7 +315,7 @@ step_vscode_extensions() {
       failed=$((failed + 1))
       echo "failed to install extension: $ext"
     fi
-  done < "$extensions_file"
+  done
 
   step_detail "$newly installed, $already already present"
   [ "$failed" -eq 0 ]
