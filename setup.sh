@@ -272,24 +272,36 @@ step_vscode_extensions() {
   fi
 
   local already=0 newly=0 failed=0 ext installed_list local_dir
-  installed_list="$(code --list-extensions)"
+  # --show-versions so local extensions can be compared against their
+  # package.json version below -- a bare id match would call a stale local
+  # build "already present" and never rebuild it.
+  installed_list="$(code --list-extensions --show-versions)"
 
   while IFS= read -r ext || [ -n "$ext" ]; do
     [ -z "$ext" ] && continue
 
-    if echo "$installed_list" | grep -qi "^$ext$"; then
-      already=$((already + 1))
-      continue
-    fi
-
     local_dir="$(vscode_local_extension_dir "$ext")"
     if [ -n "$local_dir" ]; then
+      local installed_version local_version
+      installed_version="$(echo "$installed_list" | grep -i "^$ext@" | sed -E 's/.*@//')"
+      local_version="$(grep -m1 '"version"' "${local_dir}/package.json" | sed -E 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/')"
+
+      if [ -n "$installed_version" ] && [ "$installed_version" = "$local_version" ]; then
+        already=$((already + 1))
+        continue
+      fi
+
       if install_local_extension "$ext" "$local_dir"; then
         newly=$((newly + 1))
       else
         failed=$((failed + 1))
         echo "failed to build/install local extension: $ext"
       fi
+      continue
+    fi
+
+    if echo "$installed_list" | grep -qi "^$ext@"; then
+      already=$((already + 1))
     elif code --install-extension "$ext" --force &>/dev/null; then
       newly=$((newly + 1))
     else
