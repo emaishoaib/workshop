@@ -156,6 +156,23 @@ step_claude_config() {
   fi
 }
 
+step_claude_skills() {
+  local source="$WORKSHOP_DIR/ai/skills"
+  local target="$HOME/.claude/skills"
+
+  mkdir -p "$HOME/.claude"
+
+  if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+    step_detail "already symlinked"
+  elif [ -e "$target" ] && [ ! -L "$target" ]; then
+    step_detail "skipped -- $target is a real directory"
+    step_warn "$target already exists as a real directory, not a symlink -- move its contents into $source first, then re-run setup.sh"
+  else
+    ln -sf "$source" "$target"
+    step_detail "~/.claude/skills linked"
+  fi
+}
+
 step_hammerspoon() {
   local source="$WORKSHOP_DIR/hammerspoon"
   local target="$HOME/.hammerspoon"
@@ -523,6 +540,7 @@ run_step "Prerequisites"      step_prerequisites
 run_step "Shell integration"  step_zshrc
 run_step "Global gitignore"   step_gitignore
 run_step "Claude config"      step_claude_config
+run_step "Claude skills"      step_claude_skills
 run_step "Hammerspoon"        step_hammerspoon
 run_step "Claude permissions" step_claude_permissions
 run_step "VS Code settings"   step_vscode_settings
