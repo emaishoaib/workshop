@@ -1,4 +1,5 @@
 db/local.zsh
+ai/local.env
 macos/alt-tab/AltTab.app
 macos/alt-tab/.build/
 macos/alt-tab/.last-build-checksum

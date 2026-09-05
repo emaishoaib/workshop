@@ -213,6 +213,127 @@ step_claude_permissions() {
   step_detail "$(jq '.permissions.allow | length' "$repo_settings") allowlist entries merged"
 }
 
+# Shared by the video-vision steps below. The native installer typically
+# lands the binary in ~/.local/bin, which isn't guaranteed to be on this
+# script's own PATH (setup.sh runs as bash, not through the interactive
+# zsh init chain) -- so check that explicit location too, not just PATH.
+find_claude_bin() {
+  if command -v claude &>/dev/null; then
+    command -v claude
+  elif [ -x "$HOME/.local/bin/claude" ]; then
+    echo "$HOME/.local/bin/claude"
+  fi
+}
+
+step_video_vision_prereqs() {
+  local have=() failed=0
+
+  if command -v ffmpeg &>/dev/null; then
+    have+=("ffmpeg")
+  elif brew install ffmpeg; then
+    have+=("ffmpeg (installed)")
+  else
+    failed=1
+  fi
+
+  if command -v yt-dlp &>/dev/null; then
+    have+=("yt-dlp")
+  elif brew install yt-dlp; then
+    have+=("yt-dlp (installed)")
+  else
+    failed=1
+  fi
+
+  step_detail "$(join_words "${have[@]}")"
+  [ "$failed" -eq 0 ]
+}
+
+step_claude_cli() {
+  if [ -n "$(find_claude_bin)" ]; then
+    step_detail "already installed"
+    return 0
+  fi
+
+  curl -fsSL https://claude.ai/install.sh | bash || return 1
+
+  if [ -z "$(find_claude_bin)" ]; then
+    step_warn "installed, but not resolvable in this shell yet -- reload your shell, then re-run setup.sh to register the video-vision MCP server"
+  fi
+  step_detail "installed"
+}
+
+# Pinned deliberately, not "@latest" -- bump this only after reviewing what
+# changed upstream (https://github.com/jordanrendric/claude-video-vision),
+# then re-run setup.sh. See ai/README.md for why this is pinned-and-local
+# rather than npx-on-demand.
+VIDEO_VISION_VERSION="1.3.2"
+VIDEO_VISION_DIR="$HOME/.claude-video-vision/vendor/$VIDEO_VISION_VERSION"
+
+# Downloads the exact published npm release (not upstream git -- npm's
+# tarball ships pre-compiled JS, so this needs no TypeScript build step) and
+# installs its runtime dependencies. Runs in a subshell that explicitly
+# loads nvm, same reasoning as install_local_extension above: setup.sh's own
+# PATH has no guarantee of finding node/npm otherwise.
+fetch_video_vision() {
+  [ -f "$VIDEO_VISION_DIR/dist/index.js" ] && return 0
+
+  local tmp
+  tmp="$(mktemp -d)"
+
+  (
+    export NVM_DIR="$HOME/.nvm"
+    if [ -s "$NVM_DIR/nvm.sh" ]; then
+      \. "$NVM_DIR/nvm.sh"
+      nvm use default &>/dev/null || nvm use --lts &>/dev/null || true
+    fi
+    command -v npm &>/dev/null || { echo "npm not found -- install Node.js first"; exit 1; }
+
+    cd "$tmp" \
+      && npm pack "claude-video-vision@$VIDEO_VISION_VERSION" --silent \
+      && tar -xzf ./*.tgz \
+      && mkdir -p "$VIDEO_VISION_DIR" \
+      && cp -R package/. "$VIDEO_VISION_DIR/" \
+      && cd "$VIDEO_VISION_DIR" \
+      && npm install --omit=dev --silent
+  )
+  local status=$?
+  rm -rf "$tmp"
+  return $status
+}
+
+# claude mcp has no documented "does this exist" check this script relies
+# on -- so it just removes any prior registration first (ignoring failure if
+# there wasn't one) and re-adds, rather than trying to detect and diff a
+# potentially-stale one (e.g. still pointing at the old npx-based command).
+step_video_vision_mcp() {
+  local claude_bin
+  claude_bin="$(find_claude_bin)"
+  if [ -z "$claude_bin" ]; then
+    step_detail "skipped -- claude CLI not resolvable yet"
+    step_warn "reload your shell and re-run setup.sh once the claude CLI is on PATH"
+    return 0
+  fi
+
+  fetch_video_vision || { step_detail "failed to fetch v$VIDEO_VISION_VERSION"; return 1; }
+
+  "$claude_bin" mcp remove claude-video-vision --scope user &>/dev/null || true
+  "$claude_bin" mcp add --transport stdio claude-video-vision --scope user \
+    -- node "$VIDEO_VISION_DIR/dist/index.js" || return 1
+
+  step_detail "v$VIDEO_VISION_VERSION, local, registered at user scope"
+}
+
+step_video_vision_key() {
+  local local_env="$WORKSHOP_DIR/ai/local.env"
+  if [ -n "$GEMINI_API_KEY" ] || { [ -f "$local_env" ] && grep -q "^export GEMINI_API_KEY=" "$local_env"; }; then
+    step_detail "configured"
+    return 0
+  fi
+
+  step_detail "not set"
+  step_warn "add GEMINI_API_KEY to $local_env (not version controlled) to enable the Gemini backend -- YouTube captions still work without it"
+}
+
 step_vscode_settings() {
   local vscode_dir="$HOME/Library/Application Support/Code/User"
   mkdir -p "$vscode_dir"
@@ -543,6 +664,10 @@ run_step "Claude config"      step_claude_config
 run_step "Claude skills"      step_claude_skills
 run_step "Hammerspoon"        step_hammerspoon
 run_step "Claude permissions" step_claude_permissions
+run_step "Video-vision prereqs" step_video_vision_prereqs
+run_step "Claude CLI"          step_claude_cli
+run_step "Video-vision MCP"    step_video_vision_mcp
+run_step "Video-vision key"    step_video_vision_key
 run_step "VS Code settings"   step_vscode_settings
 run_step "VS Code extensions" step_vscode_extensions
 run_step "Chrome: keepa-lookup" step_chrome_keepa_lookup
