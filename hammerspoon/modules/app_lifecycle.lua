@@ -8,11 +8,14 @@ local function restartLoginApps()
         if app then app:kill() end
     end
 
-    -- killApp("com.lwouis.alt-tab-macos")
+    -- AltTab runs under launchd with KeepAlive.SuccessfulExit=false, so a clean
+    -- app:kill() (exit code 0) is never auto-restarted by launchd. Driving
+    -- launchctl directly bypasses that KeepAlive policy.
+    os.execute("launchctl kickstart -k gui/$(id -u)/com.mustafa.alttab-headless")
+
     killApp("com.naotanhaocan.BetterMouse")
 
     hs.timer.doAfter(1, function()
-        -- hs.application.launchOrFocusByBundleID("com.lwouis.alt-tab-macos")
         hs.application.launchOrFocusByBundleID("com.naotanhaocan.BetterMouse")
     end)
 end
