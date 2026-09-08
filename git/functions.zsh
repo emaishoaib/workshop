@@ -334,7 +334,8 @@ ghelp() {
   echo "  greset                   remove stale git locks (index.lock, refs/stash.lock) with upward search fallback"
   echo "  grbe                     git rebase"
   echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
-  echo "  grbe edit                fuzzy-pick a commit (vs default branch) to edit in VS Code"
+  echo "  grbe edit                fuzzy-pick (multi-select) commit(s) vs default branch, edit"
+  echo "                           them one at a time in VS Code, oldest first"
   echo "  grbe done                finish a grbe edit session: committing any changes made and continuing"
   echo "                           (if a later commit conflicts, resolve + stage, then run 'grbe done' again)"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
@@ -374,7 +375,8 @@ glog() {
 # Rebase helpers
 # (no args):       git rebase
 # branch:          fuzzy-pick a branch, interactive rebase commits not in that branch
-# edit:            fuzzy-pick a commit (vs default branch) to edit in VS Code
+# edit:            fuzzy-pick (multi-select with Tab) commit(s) vs default branch,
+#                  to edit one at a time in VS Code, oldest first
 # done:            finish a grbe edit session — if you changed anything, commits those changes
 #                  (reusing the original commit's message) and continues the rebase; if you
 #                  didn't, discards and aborts, restoring the stash if one was made. If continuing
@@ -441,32 +443,79 @@ _grbe_safe_abort() {
   git rebase --abort
 }
 
+# Pops the next sha off .git/GRBE_EDIT_QUEUE (oldest-first) and un-commits it
+# (git reset HEAD~1) so its changes show up as ordinary uncommitted changes in
+# VS Code instead of an already-applied commit sitting there to amend. Used
+# both right after `grbe edit`'s initial rebase stops at the first selected
+# commit, and by `grbe done` when the rebase pauses again at the next one.
+_grbe_start_next_edit() {
+  local queue next remaining
+  queue=$(cat .git/GRBE_EDIT_QUEUE 2>/dev/null)
+  [ -z "$queue" ] && return 1
+
+  next=$(echo "$queue" | head -1)
+  remaining=$(echo "$queue" | tail -n +2)
+
+  if [ -n "$remaining" ]; then
+    echo "$remaining" > .git/GRBE_EDIT_QUEUE
+  else
+    rm -f .git/GRBE_EDIT_QUEUE
+  fi
+
+  git reset HEAD~1
+  echo "$next" > .git/GRBE_EDIT_SHA
+
+  local short_next
+  short_next=$(git rev-parse --short "$next")
+  echo ""
+  echo "Editing $short_next — changed files are now visible in VS Code."
+  echo "Run 'grbe done' when finished."
+}
+
 grbe() {
   local default_branch
   default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
 
   if [ "$1" = "edit" ]; then
-    local sha
-    sha=$(
+    local shas
+    shas=$(
       git log --oneline --color=always HEAD "^origin/$default_branch" \
-      | fzf --ansi --no-sort \
+      | fzf --ansi -m --no-sort \
           --preview='git show --name-status --format= {1}' \
           --preview-window=right:60% \
-          --prompt="Select commit > " \
-          --header="Enter: edit in VS Code  |  Ctrl-C: cancel" \
+          --prompt="Select commit(s) > " \
+          --header="Tab: select multiple  |  Enter: edit in VS Code, oldest first  |  Ctrl-C: cancel" \
       | awk '{print $1}'
     )
-    [ -z "$sha" ] && return
+    [ -z "$shas" ] && return
 
-    sha=$(git rev-parse "$sha")
-    local short_sha
-    short_sha=$(git rev-parse --short "$sha")
+    # fzf's multi-select output order follows the order items were tabbed in,
+    # NOT their position in the list -- so it can't be trusted for ordering.
+    # Resolve the selection to full hashes, then re-derive the true
+    # oldest -> newest order straight from git history.
+    local selected_full sha
+    selected_full=$(for sha in ${(f)shas}; do git rev-parse "$sha"; done)
+
+    local -a ordered
+    ordered=("${(@f)$(git rev-list --reverse HEAD "^origin/$default_branch" \
+      | grep -Fx -f <(echo "$selected_full"))}")
+    [ "${#ordered[@]}" -eq 0 ] && return
+
+    local oldest_sha="${ordered[1]}"
 
     echo ""
-    echo "Note: this starts a rebase to surface the commit's changes in VS Code."
-    echo "      Edit them if you want to, then run 'grbe done': if you changed"
-    echo "      anything it's committed back in and the rebase continues; if not,"
-    echo "      it's discarded and the rebase is aborted."
+    if [ "${#ordered[@]}" -gt 1 ]; then
+      echo "Note: this starts a rebase to surface each selected commit's changes in"
+      echo "      VS Code, one at a time, oldest first. Edit one if you want to, then"
+      echo "      run 'grbe done': if you changed anything it's committed back in"
+      echo "      (unchanged commits are carried forward as-is), and the rebase moves"
+      echo "      on to the next selected commit, or finishes if it was the last."
+    else
+      echo "Note: this starts a rebase to surface the commit's changes in VS Code."
+      echo "      Edit them if you want to, then run 'grbe done': if you changed"
+      echo "      anything it's committed back in and the rebase continues; if not,"
+      echo "      it's discarded and the rebase is aborted."
+    fi
     echo ""
 
     local stash_before stash_after
@@ -477,21 +526,22 @@ grbe() {
 
     local seq_editor
     seq_editor=$(mktemp)
-    cat > "$seq_editor" << SCRIPT
-#!/bin/sh
-sed -i '' "s/^pick $short_sha/edit $short_sha/" "\$1"
-SCRIPT
+    {
+      echo "#!/bin/sh"
+      local s short_s
+      for s in "${ordered[@]}"; do
+        short_s=$(git rev-parse --short "$s")
+        echo "sed -i '' \"s/^pick $short_s/edit $short_s/\" \"\$1\""
+      done
+    } > "$seq_editor"
     chmod +x "$seq_editor"
 
-    GIT_SEQUENCE_EDITOR="$seq_editor" git rebase -i --rebase-merges "${sha}~1"
+    GIT_SEQUENCE_EDITOR="$seq_editor" git rebase -i --rebase-merges "${oldest_sha}~1"
     rm -f "$seq_editor"
 
-    git reset HEAD~1
-    echo "$sha" > .git/GRBE_EDIT_SHA
-
-    echo ""
-    echo "Editing $short_sha — changed files are now visible in VS Code."
-    echo "Run 'grbe done' when finished."
+    printf '%s\n' "${ordered[@]}" > .git/GRBE_EDIT_QUEUE
+    [ "${#ordered[@]}" -gt 1 ] && touch .git/GRBE_EDIT_MULTI
+    _grbe_start_next_edit
     return
   fi
 
