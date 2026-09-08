@@ -40,7 +40,7 @@ brew install gh && gh auth login
 | `grbe` | `git rebase` — passes all arguments through directly |
 | `grbe branch` | Fuzzy-pick a local branch, then interactive rebase over commits on current branch not in that branch |
 | `grbe edit` | Fuzzy-pick a commit from those on the current branch vs the default branch, and surface it in VS Code to edit |
-| `grbe done` | Finish a `grbe edit` session — if you changed anything, commits it back in (reusing the original commit's message) and continues the rebase; if you didn't, discards and aborts, restoring the stash if one was made |
+| `grbe done` | Finish a `grbe edit` session — if you changed anything, commits it back in (reusing the original commit's message) and continues the rebase; if you didn't, discards and aborts, restoring the stash if one was made. If continuing the rebase hits a conflict on a later commit, resolve it, stage it, and run `grbe done` again rather than `git rebase --continue` directly |
 | `grbe onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
 | `grbe all` | Interactive rebase over every commit on the current branch vs the default branch — no guessing a commit count |
 | `grbe sync` | Fetch origin, fast-forward local default branch (no checkout needed), and rebase current branch onto it |

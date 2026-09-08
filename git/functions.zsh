@@ -336,6 +336,7 @@ ghelp() {
   echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
   echo "  grbe edit                fuzzy-pick a commit (vs default branch) to edit in VS Code"
   echo "  grbe done                finish a grbe edit session: committing any changes made and continuing"
+  echo "                           (if a later commit conflicts, resolve + stage, then run 'grbe done' again)"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  grbe all                 interactive rebase over every commit on the current branch vs the default branch"
   echo "  grbe sync                fetch origin, fast-forward local default branch, and rebase current branch onto it"
@@ -376,7 +377,9 @@ glog() {
 # edit:            fuzzy-pick a commit (vs default branch) to edit in VS Code
 # done:            finish a grbe edit session — if you changed anything, commits those changes
 #                  (reusing the original commit's message) and continues the rebase; if you
-#                  didn't, discards and aborts, restoring the stash if one was made
+#                  didn't, discards and aborts, restoring the stash if one was made. If continuing
+#                  the rebase hits a conflict on a later commit, resolve it, stage it, and run
+#                  'grbe done' again rather than 'git rebase --continue' directly
 # onto:            fuzzy-pick a branch and fork point (sha), then rebase onto it
 # all:              interactive rebase over every commit on the current branch vs the default branch
 # sync:             fetch origin, fast-forward local default branch (no checkout needed), and rebase current branch onto it
@@ -698,7 +701,17 @@ SCRIPT
   fi
 
   if [ "$1" = "done" ]; then
-    if [ -f ".git/GRBE_EDIT_SHA" ]; then
+    if [ -f ".git/GRBE_CONTINUE" ]; then
+      rm -f .git/GRBE_CONTINUE
+      git rebase --continue
+      if [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; then
+        echo ""
+        echo "grbe done: rebase stopped on another conflict — resolve it, stage"
+        echo "           it, then run 'grbe done' again. (stash left in place)"
+        touch .git/GRBE_CONTINUE
+        return 1
+      fi
+    elif [ -f ".git/GRBE_EDIT_SHA" ]; then
       local edit_sha edit_base
       edit_sha=$(cat .git/GRBE_EDIT_SHA)
       edit_base="${edit_sha}~1"
@@ -713,8 +726,9 @@ SCRIPT
         if [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; then
           echo ""
           echo "grbe done: your edit was committed, but the rebase stopped while"
-          echo "           replaying later commits — resolve it, then run"
-          echo "           'git rebase --continue' yourself. (stash left in place)"
+          echo "           replaying later commits — resolve it, stage it, then"
+          echo "           run 'grbe done' again. (stash left in place)"
+          touch .git/GRBE_CONTINUE
           return 1
         fi
       fi
