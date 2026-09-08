@@ -336,8 +336,9 @@ ghelp() {
   echo "  grbe branch              fuzzy-pick a branch, interactive rebase commits not in that branch"
   echo "  grbe edit                fuzzy-pick (multi-select) commit(s) vs default branch, edit"
   echo "                           them one at a time in VS Code, oldest first"
-  echo "  grbe done                finish a grbe edit session: committing any changes made and continuing"
-  echo "                           (if a later commit conflicts, resolve + stage, then run 'grbe done' again)"
+  echo "  grbe done                finish editing the current commit: commit any changes made, then move on"
+  echo "                           to the next selected commit if any (if a later commit conflicts, resolve"
+  echo "                           + stage, then run 'grbe done' again)"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  grbe all                 interactive rebase over every commit on the current branch vs the default branch"
   echo "  grbe sync                fetch origin, fast-forward local default branch, and rebase current branch onto it"
@@ -377,11 +378,13 @@ glog() {
 # branch:          fuzzy-pick a branch, interactive rebase commits not in that branch
 # edit:            fuzzy-pick (multi-select with Tab) commit(s) vs default branch,
 #                  to edit one at a time in VS Code, oldest first
-# done:            finish a grbe edit session — if you changed anything, commits those changes
-#                  (reusing the original commit's message) and continues the rebase; if you
-#                  didn't, discards and aborts, restoring the stash if one was made. If continuing
-#                  the rebase hits a conflict on a later commit, resolve it, stage it, and run
-#                  'grbe done' again rather than 'git rebase --continue' directly
+# done:            finish editing the current commit in a grbe edit session — if you changed
+#                  anything, commits those changes (reusing the original commit's message) and
+#                  continues the rebase; if you didn't, discards it. Either way, if more commits
+#                  were selected, the next one is then surfaced in VS Code the same way; once the
+#                  last one is done, the stash (if any) is restored. If continuing the rebase hits
+#                  a genuine conflict, resolve it, stage it, and run 'grbe done' again rather than
+#                  'git rebase --continue' directly
 # onto:            fuzzy-pick a branch and fork point (sha), then rebase onto it
 # all:              interactive rebase over every commit on the current branch vs the default branch
 # sync:             fetch origin, fast-forward local default branch (no checkout needed), and rebase current branch onto it
@@ -470,6 +473,44 @@ _grbe_start_next_edit() {
   echo ""
   echo "Editing $short_next — changed files are now visible in VS Code."
   echo "Run 'grbe done' when finished."
+}
+
+# True only if `git rebase --continue` left genuine merge conflicts behind
+# (unmerged paths), as opposed to just pausing cleanly on the next `edit`
+# commit in a multi-select `grbe edit` queue.
+_grbe_has_conflicts() {
+  [ -n "$(git diff --name-only --diff-filter=U 2>/dev/null)" ]
+}
+
+# Call this right after a `git rebase --continue` inside `grbe done`. If the
+# rebase is still paused, decides whether that's a real conflict (report it,
+# same as before) or just the rebase reaching the next commit queued by a
+# multi-select `grbe edit` (start editing it, no error). Returns 0 if the
+# rebase actually finished, so the caller can fall through to the normal
+# end-of-`grbe done` cleanup (popping the stash).
+_grbe_after_continue() {
+  local reason="$1"
+  if [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; then
+    if _grbe_has_conflicts; then
+      echo ""
+      echo "grbe done: $reason — resolve it, stage it, then run 'grbe done'"
+      echo "           again. (stash left in place)"
+      touch .git/GRBE_CONTINUE
+      return 1
+    fi
+
+    if [ -f ".git/GRBE_EDIT_QUEUE" ]; then
+      _grbe_start_next_edit
+      return 1
+    fi
+
+    echo ""
+    echo "grbe done: rebase is paused but no conflict or queued edit was found."
+    echo "           Run 'git rebase --continue' or 'git rebase --abort' directly."
+    touch .git/GRBE_CONTINUE
+    return 1
+  fi
+  return 0
 }
 
 grbe() {
@@ -754,41 +795,61 @@ SCRIPT
     if [ -f ".git/GRBE_CONTINUE" ]; then
       rm -f .git/GRBE_CONTINUE
       git rebase --continue
-      if [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; then
-        echo ""
-        echo "grbe done: rebase stopped on another conflict — resolve it, stage"
-        echo "           it, then run 'grbe done' again. (stash left in place)"
-        touch .git/GRBE_CONTINUE
-        return 1
-      fi
+      _grbe_after_continue "rebase stopped on another conflict" || return 1
     elif [ -f ".git/GRBE_EDIT_SHA" ]; then
       local edit_sha edit_base
       edit_sha=$(cat .git/GRBE_EDIT_SHA)
       edit_base="${edit_sha}~1"
       rm -f .git/GRBE_EDIT_SHA
 
-      if _grbe_worktree_matches "$edit_sha" "$edit_base"; then
+      # With more than one commit selected, an untouched commit can't be
+      # handled by aborting the rebase (the single-commit path below): that
+      # would also wipe out any earlier commit in the queue that was already
+      # edited and recommitted. So once a session is multi-commit, every
+      # commit is committed back (unchanged ones included) and the rebase
+      # continues, exactly like a plain replay.
+      if [ -f ".git/GRBE_EDIT_MULTI" ]; then
+        git add -A
+        git commit -C "$edit_sha"
+        git rebase --continue
+        _grbe_after_continue "the rebase stopped on a conflict" || return 1
+      elif _grbe_worktree_matches "$edit_sha" "$edit_base"; then
         _grbe_safe_abort || return 1
       else
         git add -A
         git commit -C "$edit_sha"
         git rebase --continue
-        if [ -d ".git/rebase-merge" ] || [ -d ".git/rebase-apply" ]; then
-          echo ""
-          echo "grbe done: your edit was committed, but the rebase stopped while"
-          echo "           replaying later commits — resolve it, stage it, then"
-          echo "           run 'grbe done' again. (stash left in place)"
-          touch .git/GRBE_CONTINUE
-          return 1
-        fi
+        _grbe_after_continue "your edit was committed, but the rebase stopped on a later conflict" || return 1
       fi
     else
       _grbe_safe_abort || return 1
     fi
 
+    # Edge case: if resolving a conflict on one selected commit's own replay
+    # finishes the whole rebase in the same step, git skips that commit's
+    # `edit` pause entirely (confirmed against plain git, not a grbe quirk) —
+    # so a later queued commit can end up applied as-is with no VS Code
+    # review stop of its own. Detect leftovers so this fails loud, not silent.
+    if [ -f ".git/GRBE_EDIT_QUEUE" ]; then
+      local sha skipped=""
+      for sha in ${(f)"$(cat .git/GRBE_EDIT_QUEUE)"}; do
+        skipped+="  $(git log -1 --oneline "$sha" 2>/dev/null || echo "$sha")
+"
+      done
+      rm -f .git/GRBE_EDIT_QUEUE
+      echo ""
+      echo "grbe done: heads up — the rebase finished before reaching every selected"
+      echo "           commit. Resolving an earlier conflict can finish off a later"
+      echo "           selected commit in the same step, skipping its own VS Code"
+      echo "           review stop. Applied as-is, without that extra review:"
+      printf '%s' "$skipped"
+    fi
+
     if [ -f ".git/GRBE_DELTA_STASHED" ]; then
-      rm -f ".git/GRBE_DELTA_STASHED"
+      rm -f ".git/GRBE_DELTA_STASHED" .git/GRBE_EDIT_MULTI
       git stash pop
+    else
+      rm -f .git/GRBE_EDIT_MULTI
     fi
     return
   fi
