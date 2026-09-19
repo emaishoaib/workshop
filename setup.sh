@@ -793,8 +793,13 @@ vscode_extensions() {
   # held open on stdin -- a subprocess in the loop body (npm install, during
   # a local extension rebuild) inherits that same stdin, and if it so much
   # as peeks at it, the shared read position shifts and corrupts whichever
-  # line the loop reads next.
-  mapfile -t exts < "$extensions_file"
+  # line the loop reads next. Not `mapfile`, which would be shorter: it only
+  # exists from bash 4, and macOS's /bin/bash is 3.2. The `|| [ -n "$ext" ]`
+  # keeps a last line that has no trailing newline.
+  exts=()
+  while IFS= read -r ext || [ -n "$ext" ]; do
+    exts+=("$ext")
+  done < "$extensions_file"
   step_action "Checking installed extensions against vscode/extensions.txt"
 
   for ext in "${exts[@]}"; do
