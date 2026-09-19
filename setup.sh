@@ -6,20 +6,40 @@ GITCONFIG="$HOME/.gitconfig"
 
 # --- Output ---
 
+# LIVE=1 when writing to a terminal: steps then get an animated spinner and
+# their grey action lines appear as they happen. Redirected to a file, each
+# step just prints its finished block, with no escape codes.
 if [ -t 1 ]; then
   C_OK=$'\033[32m'; C_FAIL=$'\033[31m'; C_WARN=$'\033[33m'
   C_DIM=$'\033[2m'; C_RESET=$'\033[0m'
+  LIVE=1
 else
   C_OK=""; C_FAIL=""; C_WARN=""; C_DIM=""; C_RESET=""
+  LIVE=0
 fi
 
 STEPS_OK=0
 STEPS_FAILED=0
-STEP_DETAIL=""
-STEP_WARNINGS=()
+STEP_DIR=""
+STEP_PID=""
+SPINNER_FRAMES=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
 
-step_detail() { STEP_DETAIL="$1"; }
-step_warn() { STEP_WARNINGS+=("$1"); }
+# Each step runs as a background job (see run_step), so these write to files
+# in STEP_DIR instead of setting variables -- a variable set inside the
+# background job would never reach the main script that does the printing.
+step_detail() { printf '%s' "$1" > "$STEP_DIR/detail"; }
+step_warn() { printf '%s\n' "$1" >> "$STEP_DIR/warnings"; }
+step_action() { printf '%s\n' "$1" >> "$STEP_DIR/actions"; }
+
+# Call right before anything that may ask for your password -- a Homebrew
+# cask install can, through sudo. From then on the spinner stops redrawing,
+# so it can't overwrite or garble the password prompt. Waits until the main
+# script has printed every action line so far, so none lands after the prompt.
+step_pause_live() {
+  : > "$STEP_DIR/paused"
+  [ "$LIVE" -eq 1 ] || return 0
+  while [ ! -f "$STEP_DIR/paused_ack" ]; do sleep 0.05; done
+}
 
 # "${arr[*]}" with IFS=', ' only ever uses IFS's first character to join
 # (a bash quirk, not a typo) -- so this exists to actually get ", " between
@@ -32,33 +52,153 @@ join_words() {
   printf '%s' "$result"
 }
 
-# Runs one step's function with its own stdout/stderr captured, so a
-# successful step prints one clean line instead of whatever the underlying
-# tool (brew, pip, swift...) feels like printing. On failure the captured
-# output is shown indented below the step, and the run keeps going --
-# nothing here ever aborts the rest of the script.
-run_step() {
-  local label="$1" fn="$2" log line
-  STEP_DETAIL=""
-  STEP_WARNINGS=()
-  log="$(mktemp)"
+# Background jobs ignore Ctrl-C in a script, so without this an interrupted
+# setup would leave the current step (and whatever brew/npm it started)
+# running. Also puts the cursor back, since the spinner hides it.
+on_exit() {
+  if [ -n "$STEP_PID" ]; then
+    pkill -TERM -P "$STEP_PID" 2>/dev/null
+    kill "$STEP_PID" 2>/dev/null
+  fi
+  [ "$LIVE" -eq 1 ] && printf '\033[?25h'
+}
+trap on_exit EXIT
+trap 'exit 130' INT TERM
 
-  if "$fn" >"$log" 2>&1; then
-    printf '%s✓%s %-24s %s%s%s\n' "$C_OK" "$C_RESET" "$label" "$C_DIM" "$STEP_DETAIL" "$C_RESET"
-    STEPS_OK=$((STEPS_OK + 1))
-  else
-    printf '%s✗%s %-24s %s%s%s\n' "$C_FAIL" "$C_RESET" "$label" "$C_DIM" "${STEP_DETAIL:-failed}" "$C_RESET"
-    while IFS= read -r line; do
-      [ -n "$line" ] && printf '  %s└─ %s%s\n' "$C_DIM" "$line" "$C_RESET"
-    done < "$log"
-    STEPS_FAILED=$((STEPS_FAILED + 1))
+# <mark> <label> [detail] -- the step's header line, without a newline.
+print_header() {
+  printf '%s %-24s %s%s%s' "$1" "$2" "$C_DIM" "$3" "$C_RESET"
+}
+
+# <connector> <color> <text> -- one indented line under a header.
+print_sub() {
+  printf '  %s%s %s%s\n' "$2" "$1" "$3" "$C_RESET"
+}
+
+# Runs one step. Its grey action lines (step_action) are shown as they
+# happen, but the underlying tools' own output (brew, npm, swift...) goes to
+# a log that's only printed if the step fails. A failed step never aborts
+# the rest of the script.
+#
+# In LIVE mode the header is printed first with a spinner, and redrawn in
+# place -- by moving the cursor up past the action lines printed since --
+# until the step finishes and it becomes a ✓ or ✗.
+run_step() {
+  local label="$1" fn="$2"
+  local shown=0 frame=0 paused=0 total status cols max line mark detail
+  local trailing=() colors=()
+
+  STEP_DIR="$(mktemp -d)"
+  : > "$STEP_DIR/actions"
+
+  # The header goes out before the step starts, so nothing the step prints
+  # straight to the terminal (a password prompt) can land ahead of it.
+  if [ "$LIVE" -eq 1 ]; then
+    cols="$(tput cols 2>/dev/null || echo 80)"
+    # Action lines are cut to the terminal width: one that wrapped onto a
+    # second row would throw off the cursor-up count used for the redraw.
+    max=$((cols - 6))
+    printf '\033[?25l'
+    print_header "${SPINNER_FRAMES[0]}" "$label"
+    printf '\n'
   fi
 
-  for line in "${STEP_WARNINGS[@]}"; do
-    printf '  %s└─ ! %s%s\n' "$C_WARN" "$line" "$C_RESET"
+  "$fn" >"$STEP_DIR/log" 2>&1 &
+  STEP_PID=$!
+
+  if [ "$LIVE" -eq 1 ]; then
+    while :; do
+      total=$(wc -l < "$STEP_DIR/actions")
+      while [ "$shown" -lt "$total" ]; do
+        shown=$((shown + 1))
+        line="$(sed -n "${shown}p" "$STEP_DIR/actions")"
+        print_sub '├─' "$C_DIM" "${line:0:$max}"
+      done
+
+      kill -0 "$STEP_PID" 2>/dev/null || break
+
+      if [ "$paused" -eq 0 ] && [ -f "$STEP_DIR/paused" ]; then
+        paused=1
+        # Swap the spinner for a still marker, since it stops animating now.
+        printf '\033[%dA\r' $((shown + 1))
+        print_header "…" "$label"
+        printf '\033[K\033[%dB\r' $((shown + 1))
+        : > "$STEP_DIR/paused_ack"
+      fi
+      if [ "$paused" -eq 0 ]; then
+        frame=$(( (frame + 1) % ${#SPINNER_FRAMES[@]} ))
+        printf '\033[%dA\r' $((shown + 1))
+        print_header "${SPINNER_FRAMES[$frame]}" "$label"
+        printf '\033[K\033[%dB\r' $((shown + 1))
+      fi
+      sleep 0.1
+    done
+  fi
+
+  wait "$STEP_PID"
+  status=$?
+  STEP_PID=""
+
+  detail="$(cat "$STEP_DIR/detail" 2>/dev/null)"
+  if [ "$status" -eq 0 ]; then
+    mark="${C_OK}✓${C_RESET}"
+    STEPS_OK=$((STEPS_OK + 1))
+  else
+    mark="${C_FAIL}✗${C_RESET}"
+    detail="${detail:-failed}"
+    STEPS_FAILED=$((STEPS_FAILED + 1))
+    while IFS= read -r line; do
+      [ -n "$line" ] && trailing+=("$line") && colors+=("$C_DIM")
+    done < "$STEP_DIR/log"
+  fi
+  if [ -f "$STEP_DIR/warnings" ]; then
+    while IFS= read -r line; do
+      trailing+=("! $line") && colors+=("$C_WARN")
+    done < "$STEP_DIR/warnings"
+  fi
+
+  if [ "$LIVE" -eq 1 ] && [ "$paused" -eq 0 ]; then
+    printf '\033[%dA\r' $((shown + 1))
+    print_header "$mark" "$label" "$detail"
+    printf '\033[K\033[%dB\r' $((shown + 1))
+    # The last action line was drawn as ├─ while more might follow. If
+    # nothing else comes under it, redraw it as the closing └─.
+    if [ "$shown" -gt 0 ] && [ "${#trailing[@]}" -eq 0 ]; then
+      line="$(sed -n "${shown}p" "$STEP_DIR/actions")"
+      printf '\033[1A\r'
+      print_sub '└─' "$C_DIM" "${line:0:$max}"
+    fi
+  else
+    # Not live, or paused: a password prompt may have been printed below the
+    # header, so it can't safely be redrawn in place. Print the finished
+    # header as a new line instead (plus, when not live, the action lines,
+    # which weren't printed while the step ran).
+    print_header "$mark" "$label" "$detail"
+    printf '\n'
+    if [ "$LIVE" -eq 0 ]; then
+      local i=0
+      while IFS= read -r line; do
+        i=$((i + 1))
+        if [ "$i" -eq "$(wc -l < "$STEP_DIR/actions")" ] && [ "${#trailing[@]}" -eq 0 ]; then
+          print_sub '└─' "$C_DIM" "$line"
+        else
+          print_sub '├─' "$C_DIM" "$line"
+        fi
+      done < "$STEP_DIR/actions"
+    fi
+  fi
+
+  local n=${#trailing[@]} j
+  for ((j = 0; j < n; j++)); do
+    if [ "$j" -eq $((n - 1)) ]; then
+      print_sub '└─' "${colors[$j]}" "${trailing[$j]}"
+    else
+      print_sub '├─' "${colors[$j]}" "${trailing[$j]}"
+    fi
   done
 
-  rm -f "$log"
+  [ "$LIVE" -eq 1 ] && printf '\033[?25h'
+  rm -rf "$STEP_DIR"
 }
 
 # --- Steps ---
@@ -256,6 +396,7 @@ step_hammerspoon() {
   local installed=""
 
   if [ ! -d "/Applications/Hammerspoon.app" ]; then
+    step_pause_live
     brew install --cask hammerspoon || return 1
     installed="installed, "
     step_warn "open Hammerspoon once and grant it Accessibility access (System Settings -> Privacy & Security) -- its hotkeys don't fire without it"
@@ -301,6 +442,7 @@ step_bettermouse() {
   local installed=""
 
   if [ ! -d "/Applications/BetterMouse.app" ]; then
+    step_pause_live
     brew install --cask bettermouse || return 1
     installed="installed, "
   fi
