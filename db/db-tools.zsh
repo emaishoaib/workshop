@@ -26,14 +26,19 @@ _dbtools_require_config() {
   source "$config_file"
 }
 
-# Run a CLI command inside the backend/frontend container
-# dcli b ...  -> backend (api)
-# dcli f ...  -> frontend (web)
+# Run a CLI command inside the project's backend or frontend container.
+# Which compose services those are, and which command runs inside them, come
+# from .dbtoolsrc (DCLI_BACKEND_SERVICE, DCLI_FRONTEND_SERVICE, DCLI_COMMAND).
+# dcli b ...  -> backend service
+# dcli f ...  -> frontend service
 dcli() {
   local target="$1"; shift
+  local DCLI_BACKEND_SERVICE DCLI_FRONTEND_SERVICE DCLI_COMMAND
+  _dbtools_require_config || return 1
+  local cli_cmd="${DCLI_COMMAND:?DCLI_COMMAND not set in .dbtoolsrc — see db/README.md}"
   case "$target" in
-    b) docker compose run --rm api bin/console "$@" ;;
-    f) docker compose run --rm web bin/console "$@" ;;
+    b) docker compose run --rm "${DCLI_BACKEND_SERVICE:?DCLI_BACKEND_SERVICE not set in .dbtoolsrc — see db/README.md}" ${=cli_cmd} "$@" ;;
+    f) docker compose run --rm "${DCLI_FRONTEND_SERVICE:?DCLI_FRONTEND_SERVICE not set in .dbtoolsrc — see db/README.md}" ${=cli_cmd} "$@" ;;
     *) echo "Usage: dcli <b|f> [args...]" ;;
   esac
 }
@@ -246,6 +251,7 @@ dmig() {
   esac
 
   local DB_NAME DB_USER DB_ENV_PREFIX MIGRATIONS_DIR DMIG_ALEMBIC_CMD DB_PROXY_NETWORK
+  local DCLI_BACKEND_SERVICE DCLI_COMMAND
   _dbtools_require_config || return 1
 
   local versions_dir="${MIGRATIONS_DIR:?MIGRATIONS_DIR not set in .dbtoolsrc — see db/README.md}"
@@ -255,12 +261,17 @@ dmig() {
   local repo_name
   repo_name="${PWD:t}"
 
-  local proxy_name pw host_var pw_var env_prefix
+  local proxy_name pw host_var pw_var env_prefix stg_service stg_cli
 
   if [ "$env_mode" = "stg" ]; then
     env_prefix="$(echo "${DB_ENV_PREFIX:?DB_ENV_PREFIX not set in .dbtoolsrc — see db/README.md}" | tr a-z A-Z)"
     host_var="${env_prefix}_DB_HOST"
     pw_var="${env_prefix}_DB_PASSWORD"
+    # Staging migrations run alembic inside the backend service directly
+    # (not via DMIG_ALEMBIC_CMD), since they need the proxy's host and
+    # password passed into the container.
+    stg_service="${DCLI_BACKEND_SERVICE:?DCLI_BACKEND_SERVICE not set in .dbtoolsrc — see db/README.md}"
+    stg_cli="${DCLI_COMMAND:?DCLI_COMMAND not set in .dbtoolsrc — see db/README.md}"
 
     echo "Starting stg DB proxy for $repo_name..."
     local proxy_result
@@ -472,14 +483,14 @@ dmig() {
       elif [ "$target_index" -lt "$current_index" ]; then
         echo "Downgrading to $target_rev..."
         if [ "$env_mode" = "stg" ]; then
-          docker compose run --rm -e "${host_var}=${proxy_name}" -e "${pw_var}=${pw}" api bin/console alembic downgrade "$target_rev"
+          docker compose run --rm -e "${host_var}=${proxy_name}" -e "${pw_var}=${pw}" "$stg_service" ${=stg_cli} alembic downgrade "$target_rev"
         else
           ${=alembic_cmd} downgrade "$target_rev"
         fi
       elif [ "$target_index" -gt "$current_index" ]; then
         echo "Upgrading to $target_rev..."
         if [ "$env_mode" = "stg" ]; then
-          docker compose run --rm -e "${host_var}=${proxy_name}" -e "${pw_var}=${pw}" api bin/console alembic upgrade "$target_rev"
+          docker compose run --rm -e "${host_var}=${proxy_name}" -e "${pw_var}=${pw}" "$stg_service" ${=stg_cli} alembic upgrade "$target_rev"
         else
           ${=alembic_cmd} upgrade "$target_rev"
         fi

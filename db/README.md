@@ -34,6 +34,9 @@ the machine, regardless of that repo's own `.gitignore`.
 | `DMIG_ALEMBIC_CMD` | `dmig` | Full command prefix that runs alembic for this project, e.g. `dcli b alembic` — `dmig` appends a subcommand (`check`, `upgrade <rev>`, etc.) and word-splits this value, so a multi-word override works |
 | `DB_ENV_PREFIX` | `dmig -stg` only | Prefix used to build the env var names (`<PREFIX>_DB_HOST`, `<PREFIX>_DB_PASSWORD`) passed into the container when migrating against staging |
 | `DB_PROXY_NETWORK` | `dmig -stg` only | Docker network the staging DB proxy container is reachable on |
+| `DCLI_BACKEND_SERVICE` | `dcli b`, `dmig -stg` | Compose service that runs the backend, e.g. `api` |
+| `DCLI_FRONTEND_SERVICE` | `dcli f` | Compose service that runs the frontend, e.g. `web` |
+| `DCLI_COMMAND` | `dcli`, `dmig -stg` | Command run inside those services, before your arguments, e.g. `bin/console` (word-split, so a multi-word command works) |
 
 ### Required hook functions
 
