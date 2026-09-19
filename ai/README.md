@@ -2,18 +2,18 @@
 
 Claude Code configuration shared across machines via `setup.sh`.
 
-`setup.sh` never installs Claude. If neither the Claude CLI nor the Claude
-desktop app is installed, it skips the `CLAUDE.md`, `skills/` and
-`settings.json` steps. The video-vision steps need the CLI specifically,
-since registering an MCP server runs `claude mcp add`, so they skip unless
-the CLI is installed.
+`setup.sh` handles everything here in one "Claude" step, and never installs
+Claude itself. If neither the Claude CLI nor the Claude desktop app is
+installed, the whole step is skipped. The video-vision parts need the CLI
+specifically, since registering an MCP server runs `claude mcp add`, so
+they're skipped when only the desktop app is installed.
 
 - **`CLAUDE.md`** — global instructions, symlinked to `~/.claude/CLAUDE.md`.
 - **`settings.json`** — permission allowlist, merged into `~/.claude/settings.json`
-  (union of `allow` entries, not an overwrite — see `step_claude_permissions`).
+  (union of `allow` entries, not an overwrite — see `claude_permissions`).
 - **`skills/`** — skills available in every Claude Code session.
 - **[claude-video-vision](https://github.com/jordanrendric/claude-video-vision) MCP server** —
-  used by the `video-archive` skill. `setup.sh` (`step_video_vision_mcp`)
+  used by the `video-archive` skill. `setup.sh` (`video_vision_mcp`)
   pins a specific reviewed npm release (see `VIDEO_VISION_VERSION` near the
   top of that step) and extracts it to `~/.claude-video-vision/vendor/<version>/`
   — outside this repo, not version controlled — then registers

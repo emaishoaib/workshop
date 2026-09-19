@@ -387,76 +387,6 @@ step_gitignore() {
   fi
 }
 
-# The native installer typically lands the CLI in ~/.local/bin, which isn't
-# guaranteed to be on this script's own PATH (setup.sh runs as bash, not
-# through the interactive zsh init chain) -- so check that explicit location
-# too, not just PATH.
-find_claude_bin() {
-  if command -v claude &>/dev/null; then
-    command -v claude
-  elif [ -x "$HOME/.local/bin/claude" ]; then
-    echo "$HOME/.local/bin/claude"
-  fi
-}
-
-# Either the CLI or the desktop app counts -- the desktop app's Code tab runs
-# Claude Code underneath and reads the same ~/.claude folder. setup.sh never
-# installs Claude itself; the Claude steps just skip when neither is present.
-claude_installed() {
-  local bin
-  bin="$(find_claude_bin)"
-  if [ -n "$bin" ]; then
-    step_action "Checking for Claude: CLI found at $bin"
-  elif [ -d "/Applications/Claude.app" ]; then
-    step_action "Checking for Claude: desktop app found"
-  else
-    step_action "Checking for Claude: neither the CLI nor the desktop app found"
-    return 1
-  fi
-}
-
-step_claude_config() {
-  if ! claude_installed; then
-    step_detail "skipped -- Claude not installed"
-    return 0
-  fi
-
-  mkdir -p "$HOME/.claude"
-  if [ -L "$HOME/.claude/CLAUDE.md" ] && [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$WORKSHOP_DIR/ai/CLAUDE.md" ]; then
-    step_action "Checking ~/.claude/CLAUDE.md: already linked to ai/CLAUDE.md"
-    step_detail "already symlinked"
-  else
-    step_action "Linking ~/.claude/CLAUDE.md to ai/CLAUDE.md"
-    ln -sf "$WORKSHOP_DIR/ai/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
-    step_detail "~/.claude/CLAUDE.md linked"
-  fi
-}
-
-step_claude_skills() {
-  if ! claude_installed; then
-    step_detail "skipped -- Claude not installed"
-    return 0
-  fi
-
-  local source="$WORKSHOP_DIR/ai/skills"
-  local target="$HOME/.claude/skills"
-
-  mkdir -p "$HOME/.claude"
-
-  if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
-    step_action "Checking ~/.claude/skills: already linked to ai/skills"
-    step_detail "already symlinked"
-  elif [ -e "$target" ] && [ ! -L "$target" ]; then
-    step_action "Checking ~/.claude/skills: a real folder, not a link -- leaving it alone"
-    step_detail "skipped -- $target is a real directory"
-    step_warn "$target already exists as a real directory, not a symlink -- move its contents into $source first, then re-run setup.sh"
-  else
-    step_action "Linking ~/.claude/skills to ai/skills"
-    ln -sf "$source" "$target"
-    step_detail "~/.claude/skills linked"
-  fi
-}
-
 step_hammerspoon() {
   local source="$WORKSHOP_DIR/hammerspoon"
   local target="$HOME/.hammerspoon"
@@ -540,12 +470,62 @@ step_bettermouse() {
   step_warn "BetterMouse: open its settings, choose import, press Cmd+Shift+G in the file picker and paste $BETTERMOUSE_CONFIG"
 }
 
-step_claude_permissions() {
-  if ! claude_installed; then
-    step_detail "skipped -- Claude not installed"
-    return 0
+# The native installer typically lands the CLI in ~/.local/bin, which isn't
+# guaranteed to be on this script's own PATH (setup.sh runs as bash, not
+# through the interactive zsh init chain) -- so check that explicit location
+# too, not just PATH.
+find_claude_bin() {
+  if command -v claude &>/dev/null; then
+    command -v claude
+  elif [ -x "$HOME/.local/bin/claude" ]; then
+    echo "$HOME/.local/bin/claude"
   fi
+}
 
+# Either the CLI or the desktop app counts -- the desktop app's Code tab runs
+# Claude Code underneath and reads the same ~/.claude folder. setup.sh never
+# installs Claude itself; the Claude steps just skip when neither is present.
+claude_installed() {
+  local bin
+  bin="$(find_claude_bin)"
+  if [ -n "$bin" ]; then
+    step_action "Checking for Claude: CLI found at $bin"
+  elif [ -d "/Applications/Claude.app" ]; then
+    step_action "Checking for Claude: desktop app found"
+  else
+    step_action "Checking for Claude: neither the CLI nor the desktop app found"
+    return 1
+  fi
+}
+
+claude_config() {
+  mkdir -p "$HOME/.claude"
+  if [ -L "$HOME/.claude/CLAUDE.md" ] && [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$WORKSHOP_DIR/ai/CLAUDE.md" ]; then
+    step_action "Checking ~/.claude/CLAUDE.md: already linked to ai/CLAUDE.md"
+  else
+    step_action "Linking ~/.claude/CLAUDE.md to ai/CLAUDE.md"
+    ln -sf "$WORKSHOP_DIR/ai/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
+  fi
+}
+
+claude_skills() {
+  local source="$WORKSHOP_DIR/ai/skills"
+  local target="$HOME/.claude/skills"
+
+  mkdir -p "$HOME/.claude"
+
+  if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+    step_action "Checking ~/.claude/skills: already linked to ai/skills"
+  elif [ -e "$target" ] && [ ! -L "$target" ]; then
+    step_action "Checking ~/.claude/skills: a real folder, not a link -- leaving it alone"
+    step_warn "$target already exists as a real directory, not a symlink -- move its contents into $source first, then re-run setup.sh"
+  else
+    step_action "Linking ~/.claude/skills to ai/skills"
+    ln -sf "$source" "$target"
+  fi
+}
+
+claude_permissions() {
   local have=()
   brew_ensure jq || return 1
 
@@ -569,17 +549,14 @@ step_claude_permissions() {
       )
     }
   ' "$claude_settings" "$repo_settings" > "$tmp" && mv "$tmp" "$claude_settings"
-
-  step_detail "$(jq '.permissions.allow | length' "$repo_settings") allowlist entries merged"
 }
 
-step_video_vision_prereqs() {
+video_vision_prereqs() {
   local have=() failed=0
 
   brew_ensure ffmpeg || failed=1
   brew_ensure yt-dlp || failed=1
 
-  step_detail "$(join_words "${have[@]}")"
   [ "$failed" -eq 0 ]
 }
 
@@ -631,49 +608,66 @@ fetch_video_vision() {
 # on -- so it just removes any prior registration first (ignoring failure if
 # there wasn't one) and re-adds, rather than trying to detect and diff a
 # potentially-stale one (e.g. still pointing at the old npx-based command).
-step_video_vision_mcp() {
-  local claude_bin
-  claude_bin="$(find_claude_bin)"
-  if [ -z "$claude_bin" ]; then
-    step_action "Checking for the Claude CLI: not found"
-    step_detail "skipped -- Claude CLI not installed"
-    return 0
-  fi
-  step_action "Checking for the Claude CLI: found at $claude_bin"
+video_vision_mcp() {
+  local claude_bin="$1"
 
-  fetch_video_vision || { step_detail "failed to fetch v$VIDEO_VISION_VERSION"; return 1; }
+  fetch_video_vision || return 1
 
   step_action "Removing any existing claude-video-vision registration"
   "$claude_bin" mcp remove claude-video-vision --scope user &>/dev/null || true
   step_action "Registering claude-video-vision with claude mcp add, at user scope"
   "$claude_bin" mcp add --transport stdio claude-video-vision --scope user \
-    -- node "$VIDEO_VISION_DIR/dist/index.js" || return 1
-
-  step_detail "v$VIDEO_VISION_VERSION, local, registered at user scope"
+    -- node "$VIDEO_VISION_DIR/dist/index.js"
 }
 
-step_video_vision_key() {
-  if [ -z "$(find_claude_bin)" ]; then
-    step_action "Checking for the Claude CLI: not found"
-    step_detail "skipped -- Claude CLI not installed"
-    return 0
-  fi
-
+video_vision_key() {
   local local_env="$WORKSHOP_DIR/ai/local.env"
   if [ -n "$GEMINI_API_KEY" ]; then
     step_action "Checking for GEMINI_API_KEY: set in your environment"
-    step_detail "configured"
     return 0
   fi
   if [ -f "$local_env" ] && grep -q "^export GEMINI_API_KEY=" "$local_env"; then
     step_action "Checking for GEMINI_API_KEY: set in ai/local.env"
-    step_detail "configured"
     return 0
   fi
 
   step_action "Checking for GEMINI_API_KEY: not set"
-  step_detail "not set"
   step_warn "add GEMINI_API_KEY to $local_env (not version controlled) to enable the Gemini backend -- YouTube captions still work without it"
+}
+
+# Everything Claude-related, as one step. Nothing here runs unless Claude is
+# installed (CLI or desktop app). The video-vision parts also need the CLI
+# specifically, since registering an MCP server runs `claude mcp add`. A part
+# that fails doesn't stop the parts after it.
+step_claude() {
+  if ! claude_installed; then
+    step_detail "skipped -- Claude not installed"
+    return 0
+  fi
+
+  local failed=() claude_bin
+  claude_config || failed+=("CLAUDE.md")
+  claude_skills || failed+=("skills")
+  claude_permissions || failed+=("permissions")
+
+  claude_bin="$(find_claude_bin)"
+  if [ -z "$claude_bin" ]; then
+    step_action "Skipping video-vision: it needs the Claude CLI, and only the desktop app is installed"
+  else
+    video_vision_prereqs || failed+=("video-vision prereqs")
+    video_vision_mcp "$claude_bin" || failed+=("video-vision MCP")
+    video_vision_key
+  fi
+
+  if [ "${#failed[@]}" -gt 0 ]; then
+    step_detail "failed: $(join_words "${failed[@]}")"
+    return 1
+  fi
+  if [ -z "$claude_bin" ]; then
+    step_detail "configured, video-vision skipped (no CLI)"
+  else
+    step_detail "configured, video-vision v$VIDEO_VISION_VERSION"
+  fi
 }
 
 VSCODE_APP="/Applications/Visual Studio Code.app"
@@ -945,14 +939,9 @@ run_step "Prerequisites"      step_prerequisites
 run_step "Node"               step_node
 run_step "Shell integration"  step_zshrc
 run_step "Global gitignore"   step_gitignore
-run_step "Claude config"      step_claude_config
-run_step "Claude skills"      step_claude_skills
 run_step "Hammerspoon"        step_hammerspoon
 run_step "BetterMouse"        step_bettermouse
-run_step "Claude permissions" step_claude_permissions
-run_step "Video-vision prereqs" step_video_vision_prereqs
-run_step "Video-vision MCP"    step_video_vision_mcp
-run_step "Video-vision key"    step_video_vision_key
+run_step "Claude"             step_claude
 run_step "VS Code settings"   step_vscode_settings
 run_step "VS Code extensions" step_vscode_extensions
 run_step "Chrome: keepa-lookup" step_chrome_keepa_lookup
