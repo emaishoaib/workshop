@@ -2,6 +2,12 @@
 
 Claude Code configuration shared across machines via `setup.sh`.
 
+`setup.sh` never installs Claude. If neither the Claude CLI nor the Claude
+desktop app is installed, it skips the `CLAUDE.md`, `skills/` and
+`settings.json` steps. The video-vision steps need the CLI specifically,
+since registering an MCP server runs `claude mcp add`, so they skip unless
+the CLI is installed.
+
 - **`CLAUDE.md`** — global instructions, symlinked to `~/.claude/CLAUDE.md`.
 - **`settings.json`** — permission allowlist, merged into `~/.claude/settings.json`
   (union of `allow` entries, not an overwrite — see `step_claude_permissions`).

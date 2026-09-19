@@ -146,7 +146,31 @@ step_gitignore() {
   fi
 }
 
+# The native installer typically lands the CLI in ~/.local/bin, which isn't
+# guaranteed to be on this script's own PATH (setup.sh runs as bash, not
+# through the interactive zsh init chain) -- so check that explicit location
+# too, not just PATH.
+find_claude_bin() {
+  if command -v claude &>/dev/null; then
+    command -v claude
+  elif [ -x "$HOME/.local/bin/claude" ]; then
+    echo "$HOME/.local/bin/claude"
+  fi
+}
+
+# Either the CLI or the desktop app counts -- the desktop app's Code tab runs
+# Claude Code underneath and reads the same ~/.claude folder. setup.sh never
+# installs Claude itself; the Claude steps just skip when neither is present.
+claude_installed() {
+  [ -n "$(find_claude_bin)" ] || [ -d "/Applications/Claude.app" ]
+}
+
 step_claude_config() {
+  if ! claude_installed; then
+    step_detail "skipped -- Claude not installed"
+    return 0
+  fi
+
   mkdir -p "$HOME/.claude"
   if [ -L "$HOME/.claude/CLAUDE.md" ] && [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$WORKSHOP_DIR/ai/CLAUDE.md" ]; then
     step_detail "already symlinked"
@@ -157,6 +181,11 @@ step_claude_config() {
 }
 
 step_claude_skills() {
+  if ! claude_installed; then
+    step_detail "skipped -- Claude not installed"
+    return 0
+  fi
+
   local source="$WORKSHOP_DIR/ai/skills"
   local target="$HOME/.claude/skills"
 
@@ -189,6 +218,11 @@ step_hammerspoon() {
 }
 
 step_claude_permissions() {
+  if ! claude_installed; then
+    step_detail "skipped -- Claude not installed"
+    return 0
+  fi
+
   if ! command -v jq &>/dev/null; then
     brew install jq || return 1
   fi
@@ -211,32 +245,6 @@ step_claude_permissions() {
   ' "$claude_settings" "$repo_settings" > "$tmp" && mv "$tmp" "$claude_settings"
 
   step_detail "$(jq '.permissions.allow | length' "$repo_settings") allowlist entries merged"
-}
-
-# Shared by the video-vision steps below. The native installer typically
-# lands the binary in ~/.local/bin, which isn't guaranteed to be on this
-# script's own PATH (setup.sh runs as bash, not through the interactive
-# zsh init chain) -- so check that explicit location too, not just PATH.
-find_claude_bin() {
-  if command -v claude &>/dev/null; then
-    command -v claude
-  elif [ -x "$HOME/.local/bin/claude" ]; then
-    echo "$HOME/.local/bin/claude"
-  fi
-}
-
-step_claude_cli() {
-  if [ -n "$(find_claude_bin)" ]; then
-    step_detail "already installed"
-    return 0
-  fi
-
-  curl -fsSL https://claude.ai/install.sh | bash || return 1
-
-  if [ -z "$(find_claude_bin)" ]; then
-    step_warn "installed, but not resolvable in this shell yet -- reload your shell, then re-run setup.sh to register the video-vision MCP server"
-  fi
-  step_detail "installed"
 }
 
 step_video_vision_prereqs() {
@@ -309,8 +317,7 @@ step_video_vision_mcp() {
   local claude_bin
   claude_bin="$(find_claude_bin)"
   if [ -z "$claude_bin" ]; then
-    step_detail "skipped -- claude CLI not resolvable yet"
-    step_warn "reload your shell and re-run setup.sh once the claude CLI is on PATH"
+    step_detail "skipped -- Claude CLI not installed"
     return 0
   fi
 
@@ -324,6 +331,11 @@ step_video_vision_mcp() {
 }
 
 step_video_vision_key() {
+  if [ -z "$(find_claude_bin)" ]; then
+    step_detail "skipped -- Claude CLI not installed"
+    return 0
+  fi
+
   local local_env="$WORKSHOP_DIR/ai/local.env"
   if [ -n "$GEMINI_API_KEY" ] || { [ -f "$local_env" ] && grep -q "^export GEMINI_API_KEY=" "$local_env"; }; then
     step_detail "configured"
@@ -529,7 +541,6 @@ run_step "Claude config"      step_claude_config
 run_step "Claude skills"      step_claude_skills
 run_step "Hammerspoon"        step_hammerspoon
 run_step "Claude permissions" step_claude_permissions
-run_step "Claude CLI"          step_claude_cli
 run_step "Video-vision prereqs" step_video_vision_prereqs
 run_step "Video-vision MCP"    step_video_vision_mcp
 run_step "Video-vision key"    step_video_vision_key
