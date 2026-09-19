@@ -15,6 +15,8 @@ bash setup.sh
 source ~/.zshrc
 ```
 
+`setup.sh` first checks for Xcode Command Line Tools. If they're missing, it stops and tells you to run `xcode-select --install` yourself, then re-run it.
+
 `setup.sh` installs prerequisites (fzf, gh), wires the shell config into `~/.zshrc`, and configures a global gitignore (`.dbtoolsrc`, used by [`db/`](db/README.md)'s tooling, is always ignored machine-wide, not just where you remember to add it). Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
 
 ---

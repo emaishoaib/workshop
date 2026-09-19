@@ -63,6 +63,21 @@ run_step() {
 
 # --- Steps ---
 
+# Only checks, never runs `xcode-select --install` itself -- that opens a
+# macOS dialog, and the user should choose when to go through it.
+# `xcode-select -p` just prints the install path (or fails), no dialog.
+step_xcode_clt() {
+  if xcode-select -p &>/dev/null; then
+    step_detail "installed"
+    return 0
+  fi
+
+  step_detail "not installed"
+  step_warn "run: xcode-select --install"
+  step_warn "then re-run: bash setup.sh"
+  return 1
+}
+
 step_prerequisites() {
   if ! command -v brew &>/dev/null; then
     echo "Homebrew not found -- install it first: https://brew.sh"
@@ -533,6 +548,18 @@ step_chrome_keepa_lookup() {
 
 echo "${C_DIM}── workshop setup ─────────────────────────────────────${C_RESET}"
 echo ""
+
+# Stops here instead of carrying on like every other failed step: git and
+# python3, which later steps call, are placeholder commands in /usr/bin until
+# the tools are installed, and running one opens the same install dialog
+# this check exists to avoid.
+run_step "Xcode CLI tools"    step_xcode_clt
+if [ "$STEPS_FAILED" -gt 0 ]; then
+  echo ""
+  echo "${C_DIM}─────────────────────────────────────────────────────────${C_RESET}"
+  echo "${C_FAIL}Stopped: install Xcode Command Line Tools, then re-run setup.sh.${C_RESET}"
+  exit 1
+fi
 
 run_step "Prerequisites"      step_prerequisites
 run_step "Shell integration"  step_zshrc
