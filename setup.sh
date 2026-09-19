@@ -106,6 +106,39 @@ step_prerequisites() {
   [ "$failed" -eq 0 ]
 }
 
+# Pinned for the same reason as VIDEO_VISION_VERSION below: the install
+# script runs straight from the network, so bump this only after reviewing
+# what changed upstream (https://github.com/nvm-sh/nvm/releases).
+NVM_VERSION="v0.40.7"
+
+# nvm doesn't support being installed through Homebrew, so this uses nvm's
+# own install script. That script also adds the lines that load nvm to
+# ~/.zshrc. An existing default Node version is left alone -- only a machine
+# with no default gets the current LTS.
+step_node() {
+  local installed="" result
+
+  if [ ! -s "$HOME/.nvm/nvm.sh" ]; then
+    curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh" | bash || return 1
+    installed="nvm installed, "
+  fi
+
+  # A subshell, so loading nvm here never changes the PATH of later steps.
+  # Only the last line goes to stdout; nvm's own output goes to the step log.
+  result="$(
+    export NVM_DIR="$HOME/.nvm"
+    \. "$NVM_DIR/nvm.sh" || exit 1
+    if [ "$(nvm version default)" = "N/A" ]; then
+      nvm install --lts >&2 && nvm alias default 'lts/*' >&2 || exit 1
+      echo "default node $(nvm version default) (installed)"
+    else
+      echo "default node $(nvm version default)"
+    fi
+  )" || return 1
+
+  step_detail "${installed}${result}"
+}
+
 step_zshrc() {
   touch "$ZSHRC"
 
@@ -615,6 +648,7 @@ if [ "$STEPS_FAILED" -gt 0 ]; then
 fi
 
 run_step "Prerequisites"      step_prerequisites
+run_step "Node"               step_node
 run_step "Shell integration"  step_zshrc
 run_step "Global gitignore"   step_gitignore
 run_step "Claude config"      step_claude_config
