@@ -2,7 +2,7 @@
 
 VS Code user settings, kept here so they're version-controlled and consistent across machines. Both files are symlinked into the VS Code user config directory so any changes are tracked in git.
 
-This is handled automatically by `setup.sh`. It doesn't install VS Code itself. If VS Code isn't installed, both VS Code steps are skipped with a warning. If the `code` command isn't on your PATH, the extensions step is skipped with a warning too. Fix it from VS Code's Command Palette with "Shell Command: Install 'code' command in PATH".
+This is handled automatically by `setup.sh`, in a single "VS Code" step. It doesn't install VS Code itself. If VS Code isn't installed, the whole step is skipped with one warning. If the `code` command isn't on your PATH, the settings are still linked, but the extensions are skipped with a warning. Fix it from VS Code's Command Palette with "Shell Command: Install 'code' command in PATH".
 
 To wire it up manually:
 

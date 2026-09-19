@@ -672,40 +672,21 @@ step_claude() {
 
 VSCODE_APP="/Applications/Visual Studio Code.app"
 
-# setup.sh never installs VS Code itself. Both VS Code steps skip with a
-# warning when the app is missing, instead of failing.
-vscode_installed() {
-  if [ -d "$VSCODE_APP" ]; then
-    step_action "Checking for VS Code: installed"
-    return 0
-  fi
-  step_action "Checking for VS Code: not installed"
-  step_detail "skipped -- VS Code not installed"
-  step_warn "install VS Code, then re-run: bash setup.sh"
-  return 1
-}
-
-step_vscode_settings() {
-  vscode_installed || return 0
-
+vscode_settings() {
   local vscode_dir="$HOME/Library/Application Support/Code/User"
   mkdir -p "$vscode_dir"
 
-  local linked=() file target source
+  local file target source
   for file in settings.json keybindings.json; do
     target="$vscode_dir/$file"
     source="$WORKSHOP_DIR/vscode/$file"
     if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
       step_action "Checking VS Code's $file: already linked to vscode/$file"
-      linked+=("$file")
     else
       step_action "Linking VS Code's $file to vscode/$file"
-      ln -sf "$source" "$target"
-      linked+=("$file (linked)")
+      ln -sf "$source" "$target" || return 1
     fi
   done
-
-  step_detail "$(join_words "${linked[@]}")"
 }
 
 # Extensions with a matching folder under vscode/extensions/ are custom,
@@ -752,19 +733,20 @@ install_local_extension() {
   code --install-extension "$vsix" --force &>/dev/null
 }
 
-step_vscode_extensions() {
-  vscode_installed || return 0
-
+# Sets the caller's `ext_result` (bash functions can see their caller's
+# local variables) to a short summary for the VS Code step's status text.
+vscode_extensions() {
   local extensions_file="$WORKSHOP_DIR/vscode/extensions.txt"
 
   if [ ! -f "$extensions_file" ]; then
-    step_detail "vscode/extensions.txt not found, skipped"
+    step_action "Checking for vscode/extensions.txt: not found -- skipping extensions"
+    ext_result="no extension list"
     return 0
   fi
 
   if ! command -v code &>/dev/null; then
-    step_action "Checking for the code command: not found"
-    step_detail "skipped -- 'code' command not found"
+    step_action "Checking for the code command: not found -- skipping extensions"
+    ext_result="extensions skipped (no code command)"
     step_warn "in VS Code, run \"Shell Command: Install 'code' command in PATH\" from the Command Palette, then re-run: bash setup.sh"
     return 0
   fi
@@ -824,8 +806,30 @@ step_vscode_extensions() {
   done
 
   step_action "$already already installed and up to date, left alone"
-  step_detail "$newly installed, $already already present"
+  ext_result="$newly extensions installed, $already already present"
   [ "$failed" -eq 0 ]
+}
+
+# Both VS Code parts, as one step. setup.sh never installs VS Code itself:
+# when it's missing, the whole step is skipped with a single warning.
+step_vscode() {
+  if [ ! -d "$VSCODE_APP" ]; then
+    step_action "Checking for VS Code: not installed"
+    step_detail "skipped -- VS Code not installed"
+    step_warn "install VS Code, then re-run: bash setup.sh"
+    return 0
+  fi
+  step_action "Checking for VS Code: installed"
+
+  local failed=() ext_result=""
+  vscode_settings || failed+=("settings")
+  vscode_extensions || failed+=("extensions")
+
+  if [ "${#failed[@]}" -gt 0 ]; then
+    step_detail "failed: $(join_words "${failed[@]}")"
+    return 1
+  fi
+  step_detail "settings linked, $ext_result"
 }
 
 CHROME_EXT_DIR="$WORKSHOP_DIR/chrome/keepa-lookup"
@@ -942,8 +946,7 @@ run_step "Global gitignore"   step_gitignore
 run_step "Hammerspoon"        step_hammerspoon
 run_step "BetterMouse"        step_bettermouse
 run_step "Claude"             step_claude
-run_step "VS Code settings"   step_vscode_settings
-run_step "VS Code extensions" step_vscode_extensions
+run_step "VS Code"            step_vscode
 run_step "Chrome: keepa-lookup" step_chrome_keepa_lookup
 run_step "Docker"             step_docker
 
