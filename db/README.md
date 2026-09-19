@@ -4,6 +4,9 @@ Generic Docker/Alembic database tooling: `ddb` (connect to a project DB across
 environments) and `dmig` (walk and navigate an Alembic migration chain,
 including offering to generate a migration for uncommitted model changes).
 
+Both need Docker with Compose. `setup.sh` checks for it and warns if it's
+missing, but never installs it.
+
 ## `db-tools.zsh`
 
 Version controlled. Deliberately has no machine- or project-specific

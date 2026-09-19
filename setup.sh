@@ -648,6 +648,20 @@ step_chrome_keepa_lookup() {
   fi
 }
 
+# Only checks, never installs: Docker Desktop is a large install, and its
+# license needs a paid plan at larger companies -- that's the user's call.
+# `docker compose version` works without the Docker daemon running, and
+# running isn't needed until ddb/dmig are actually used.
+step_docker() {
+  if command -v docker &>/dev/null && docker compose version &>/dev/null; then
+    step_detail "installed"
+    return 0
+  fi
+
+  step_detail "not installed"
+  step_warn "install Docker (ddb and dmig in db/ need it), then re-run: bash setup.sh"
+}
+
 # --- Run ---
 
 echo "${C_DIM}── workshop setup ─────────────────────────────────────${C_RESET}"
@@ -680,6 +694,7 @@ run_step "Video-vision key"    step_video_vision_key
 run_step "VS Code settings"   step_vscode_settings
 run_step "VS Code extensions" step_vscode_extensions
 run_step "Chrome: keepa-lookup" step_chrome_keepa_lookup
+run_step "Docker"             step_docker
 
 echo ""
 echo "${C_DIM}─────────────────────────────────────────────────────────${C_RESET}"
