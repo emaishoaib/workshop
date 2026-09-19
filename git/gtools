@@ -268,14 +268,18 @@ recreate_repo() {
   fi
   echo ""
 
+  # Checked, never granted from here: deleting repos is a permission worth
+  # switching on deliberately, and off again afterwards.
+  if ! gh auth status 2>&1 | grep -q 'delete_repo'; then
+    err "gh doesn't have permission to delete repos, so nothing changed."
+    echo "  Grant it (opens your browser), then run gtools again:"
+    echo "    gh auth refresh -h github.com -s delete_repo"
+    return
+  fi
+
   local typed
   typed=$(ask "Type $slug to confirm:")
   [ "$typed" = "$slug" ] || { warn "Didn't match — nothing changed."; return; }
-
-  if ! gh auth status 2>&1 | grep -q 'delete_repo'; then
-    warn "gh needs the delete_repo permission — approving it opens your browser."
-    gh auth refresh -h github.com -s delete_repo || { err "Permission not granted — nothing changed."; return; }
-  fi
 
   gh repo delete "$slug" --yes || { err "Delete failed — nothing changed."; return; }
   ok "Deleted $slug on GitHub."
@@ -298,6 +302,10 @@ recreate_repo() {
   ok "Pushed every local branch and tag."
 
   [ "$new_slug" != "$slug" ] && rename_local_dir "$new_name"
+
+  echo ""
+  warn "gh can still delete repos. Remove that permission when you're done:"
+  echo "    gh auth refresh -h github.com -r delete_repo"
 }
 
 # ── main ──────────────────────────────────────────────────────────────────────
