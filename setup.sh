@@ -225,6 +225,20 @@ find_claude_bin() {
   fi
 }
 
+step_claude_cli() {
+  if [ -n "$(find_claude_bin)" ]; then
+    step_detail "already installed"
+    return 0
+  fi
+
+  curl -fsSL https://claude.ai/install.sh | bash || return 1
+
+  if [ -z "$(find_claude_bin)" ]; then
+    step_warn "installed, but not resolvable in this shell yet -- reload your shell, then re-run setup.sh to register the video-vision MCP server"
+  fi
+  step_detail "installed"
+}
+
 step_video_vision_prereqs() {
   local have=() failed=0
 
@@ -246,20 +260,6 @@ step_video_vision_prereqs() {
 
   step_detail "$(join_words "${have[@]}")"
   [ "$failed" -eq 0 ]
-}
-
-step_claude_cli() {
-  if [ -n "$(find_claude_bin)" ]; then
-    step_detail "already installed"
-    return 0
-  fi
-
-  curl -fsSL https://claude.ai/install.sh | bash || return 1
-
-  if [ -z "$(find_claude_bin)" ]; then
-    step_warn "installed, but not resolvable in this shell yet -- reload your shell, then re-run setup.sh to register the video-vision MCP server"
-  fi
-  step_detail "installed"
 }
 
 # Pinned deliberately, not "@latest" -- bump this only after reviewing what
@@ -529,8 +529,8 @@ run_step "Claude config"      step_claude_config
 run_step "Claude skills"      step_claude_skills
 run_step "Hammerspoon"        step_hammerspoon
 run_step "Claude permissions" step_claude_permissions
-run_step "Video-vision prereqs" step_video_vision_prereqs
 run_step "Claude CLI"          step_claude_cli
+run_step "Video-vision prereqs" step_video_vision_prereqs
 run_step "Video-vision MCP"    step_video_vision_mcp
 run_step "Video-vision key"    step_video_vision_key
 run_step "VS Code settings"   step_vscode_settings
