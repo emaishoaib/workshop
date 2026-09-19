@@ -11,6 +11,9 @@ they're skipped when only the desktop app is installed.
 - **`CLAUDE.md`** — global instructions, symlinked to `~/.claude/CLAUDE.md`.
 - **`settings.json`** — permission allowlist, merged into `~/.claude/settings.json`
   (union of `allow` entries, not an overwrite — see `claude_permissions`).
+- **`settings.local.json`** — optional extra allowlist entries for private
+  tools, merged the same way when the file exists. **Not version controlled** —
+  see `.gitignore`. Create it yourself, in the same shape as `settings.json`.
 - **`skills/`** — skills available in every Claude Code session.
 - **[claude-video-vision](https://github.com/jordanrendric/claude-video-vision) MCP server** —
   used by the `video-archive` skill. `setup.sh` (`video_vision_mcp`)

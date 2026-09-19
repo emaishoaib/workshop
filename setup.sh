@@ -588,12 +588,17 @@ claude_skills() {
   fi
 }
 
+# Merges ai/settings.json's allowlist into ~/.claude/settings.json, plus
+# ai/settings.local.json's when it exists. The local file is gitignored: it
+# holds permissions tied to private tools, which don't belong
+# in this public repo. Entries are only ever added, never removed.
 claude_permissions() {
   brew_ensure jq || return 1
 
   local claude_settings="$HOME/.claude/settings.json"
   local repo_settings="$WORKSHOP_DIR/ai/settings.json"
-  local tmp
+  local local_settings="$WORKSHOP_DIR/ai/settings.local.json"
+  local sources=("$repo_settings") tmp
 
   if [ ! -f "$claude_settings" ]; then
     step_action "Creating an empty ~/.claude/settings.json"
@@ -601,16 +606,21 @@ claude_permissions() {
   fi
 
   step_action "Merging the $(jq '.permissions.allow | length' "$repo_settings") allowlist entries from ai/settings.json into ~/.claude/settings.json"
+  if [ -f "$local_settings" ]; then
+    step_action "Merging the $(jq '.permissions.allow | length' "$local_settings") allowlist entries from ai/settings.local.json too"
+    sources+=("$local_settings")
+  fi
+
   tmp="$(mktemp)"
   jq -s '
     .[0] * {
       "permissions": (
         (.[0].permissions // {}) * {
-          "allow": ((.[0].permissions.allow // []) + (.[1].permissions.allow // []) | unique)
+          "allow": ([.[].permissions.allow // []] | add | unique)
         }
       )
     }
-  ' "$claude_settings" "$repo_settings" > "$tmp" && mv "$tmp" "$claude_settings"
+  ' "$claude_settings" "${sources[@]}" > "$tmp" && mv "$tmp" "$claude_settings"
 }
 
 video_vision_prereqs() {
