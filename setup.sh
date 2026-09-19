@@ -239,6 +239,52 @@ step_hammerspoon() {
   fi
 }
 
+BETTERMOUSE_CONFIG="$WORKSHOP_DIR/macos/bettermouse/better_mouse_config.plist"
+BETTERMOUSE_PREFS="$HOME/Library/Preferences/com.naotanhaocan.BetterMouse.plist"
+
+# True when every settings section in the repo export has the same value in
+# BetterMouse's live preferences. The live file also holds things the export
+# doesn't (window positions, update checks, the license key), so only the
+# export's own keys are compared. Its "ver" key is skipped: the live file
+# stores that as "version" instead.
+bettermouse_config_applied() {
+  python3 - "$BETTERMOUSE_CONFIG" "$BETTERMOUSE_PREFS" <<'PY'
+import plistlib, sys
+with open(sys.argv[1], "rb") as f:
+    repo = plistlib.load(f)
+try:
+    with open(sys.argv[2], "rb") as f:
+        live = plistlib.load(f)
+except FileNotFoundError:
+    sys.exit(1)
+sys.exit(0 if all(k in live and live[k] == v for k, v in repo.items() if k != "ver") else 1)
+PY
+}
+
+# BetterMouse has no command for importing settings, and writing its
+# preferences file directly would risk the license key stored in it -- so,
+# like the Chrome step, this only gets you to the one manual click.
+step_bettermouse() {
+  local installed=""
+
+  if [ ! -d "/Applications/BetterMouse.app" ]; then
+    brew install --cask bettermouse || return 1
+    installed="installed, "
+  fi
+
+  if bettermouse_config_applied; then
+    step_detail "${installed}config applied"
+    return 0
+  fi
+
+  printf '%s' "$BETTERMOUSE_CONFIG" | pbcopy 2>/dev/null
+  open -a "BetterMouse" 2>/dev/null
+  step_detail "${installed}config not imported -- path copied to clipboard"
+  # The path is spelled out too, because a later step (Chrome) can replace
+  # the clipboard before you get to this one.
+  step_warn "BetterMouse: open its settings, choose import, press Cmd+Shift+G in the file picker and paste $BETTERMOUSE_CONFIG"
+}
+
 step_claude_permissions() {
   if ! claude_installed; then
     step_detail "skipped -- Claude not installed"
@@ -574,6 +620,7 @@ run_step "Global gitignore"   step_gitignore
 run_step "Claude config"      step_claude_config
 run_step "Claude skills"      step_claude_skills
 run_step "Hammerspoon"        step_hammerspoon
+run_step "BetterMouse"        step_bettermouse
 run_step "Claude permissions" step_claude_permissions
 run_step "Video-vision prereqs" step_video_vision_prereqs
 run_step "Video-vision MCP"    step_video_vision_mcp

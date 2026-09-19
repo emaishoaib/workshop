@@ -33,8 +33,18 @@ re-exporting from BetterMouse, since exports come out binary by default.
 
 ## Restoring on a new machine
 
-BetterMouse → Preferences → the import/export option in its settings → import
-`better_mouse_config.plist`.
+`setup.sh` installs BetterMouse with Homebrew if it's missing. It then
+compares this file with BetterMouse's live settings in
+`~/Library/Preferences/com.naotanhaocan.BetterMouse.plist`. If they differ,
+it opens BetterMouse, copies this file's path to your clipboard and tells you
+to import it.
+
+The import itself is manual: BetterMouse → Preferences → the import/export
+option in its settings → import `better_mouse_config.plist`. In the file
+picker, press ⌘⇧G and paste the path.
+
+If you change BetterMouse's settings, re-export them here. Otherwise
+`setup.sh` will keep asking you to import the older export.
 
 ## Revisiting the Hammerspoon conflict
 
