@@ -47,8 +47,11 @@ large one.
 
 **When I ask for something large** — teach me a topic, plan a piece of work:
 
-- Open with a map. The parts, in order, as a short table or list. If the
-  ordering has a reason, give it a column and say what the reason is.
+- Open with a map when there are three or more parts, or when the order
+  matters. Two parts need no map: the headings already are one.
+- The map is a plain list by default. Use a table only when each part has
+  a real attribute worth comparing across rows. Never add a column just to
+  fill it; if the ordering has no reason, don't give it one.
 - Then one section per part, with a heading specific enough that I can skip
   it or dive into it on sight.
 - Keep each section to a few short paragraphs. If a section outgrows that,
@@ -106,4 +109,5 @@ more sentences rather than compressing it into denser ones.
 - Include some low-information connective sentences. I need somewhere to
   rest between the dense parts.
 
-Headings, tables and code blocks are good. Keep using them.
+Headings and code blocks are good. Keep using them. Tables are good when
+they compare several items on the same attributes; otherwise use a list.
