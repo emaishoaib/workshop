@@ -447,7 +447,22 @@ step_video_vision_key() {
   step_warn "add GEMINI_API_KEY to $local_env (not version controlled) to enable the Gemini backend -- YouTube captions still work without it"
 }
 
+VSCODE_APP="/Applications/Visual Studio Code.app"
+
+# setup.sh never installs VS Code itself. Both VS Code steps skip with a
+# warning when the app is missing, instead of failing.
+vscode_installed() {
+  if [ -d "$VSCODE_APP" ]; then
+    return 0
+  fi
+  step_detail "skipped -- VS Code not installed"
+  step_warn "install VS Code, then re-run: bash setup.sh"
+  return 1
+}
+
 step_vscode_settings() {
+  vscode_installed || return 0
+
   local vscode_dir="$HOME/Library/Application Support/Code/User"
   mkdir -p "$vscode_dir"
 
@@ -510,6 +525,8 @@ install_local_extension() {
 }
 
 step_vscode_extensions() {
+  vscode_installed || return 0
+
   local extensions_file="$WORKSHOP_DIR/vscode/extensions.txt"
 
   if [ ! -f "$extensions_file" ]; then
@@ -518,8 +535,9 @@ step_vscode_extensions() {
   fi
 
   if ! command -v code &>/dev/null; then
-    step_detail "'code' CLI not found"
-    return 1
+    step_detail "skipped -- 'code' command not found"
+    step_warn "in VS Code, run \"Shell Command: Install 'code' command in PATH\" from the Command Palette, then re-run: bash setup.sh"
+    return 0
   fi
 
   local already=0 newly=0 failed=0 ext installed_list local_dir exts
