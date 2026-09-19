@@ -3,6 +3,10 @@
 WORKSHOP_DIR="$(cd "$(dirname "$0")" && pwd)"
 ZSHRC="$HOME/.zshrc"
 GITCONFIG="$HOME/.gitconfig"
+# The full record of the last run: every step's grey lines, warnings and the
+# underlying tools' own output, which the terminal collapses or hides.
+# Overwritten on each run.
+SETUP_LOG="$HOME/.workshop-setup.log"
 
 # --- Output ---
 
@@ -73,6 +77,44 @@ print_header() {
 # <connector> <color> <text> -- one indented line under a header.
 print_sub() {
   printf '  %s%s %s%s\n' "$2" "$1" "$3" "$C_RESET"
+}
+
+# <status> <label> <detail> -- appends the finished step to SETUP_LOG, in
+# full and without colors: header, every action line, every warning, then
+# the tools' own output (brew, npm, swift...), whether the step failed or not.
+log_step() {
+  local line items=() n i
+  while IFS= read -r line; do
+    items+=("$line")
+  done < "$STEP_DIR/actions"
+  if [ -f "$STEP_DIR/warnings" ]; then
+    while IFS= read -r line; do
+      items+=("! $line")
+    done < "$STEP_DIR/warnings"
+  fi
+  [ -s "$STEP_DIR/log" ] && items+=("tool output:")
+
+  {
+    if [ "$1" -eq 0 ]; then
+      printf '✓ %-24s %s\n' "$2" "$3"
+    else
+      printf '✗ %-24s %s\n' "$2" "$3"
+    fi
+    n=${#items[@]}
+    for ((i = 0; i < n; i++)); do
+      if [ "$i" -eq $((n - 1)) ]; then
+        printf '  └─ %s\n' "${items[$i]}"
+      else
+        printf '  ├─ %s\n' "${items[$i]}"
+      fi
+    done
+    if [ -s "$STEP_DIR/log" ]; then
+      while IFS= read -r line; do
+        printf '       %s\n' "$line"
+      done < "$STEP_DIR/log"
+    fi
+    printf '\n'
+  } >> "$SETUP_LOG"
 }
 
 # Runs one step. Its grey action lines (step_action) are shown as they
@@ -226,6 +268,7 @@ run_step() {
   done
 
   [ "$LIVE" -eq 1 ] && printf '\033[?25h'
+  log_step "$status" "$label" "$detail"
   rm -rf "$STEP_DIR"
 }
 
@@ -965,6 +1008,8 @@ step_docker() {
 echo "${C_DIM}── workshop setup ─────────────────────────────────────${C_RESET}"
 echo ""
 
+printf 'workshop setup -- %s\n\n' "$(date '+%Y-%m-%d %H:%M:%S')" > "$SETUP_LOG"
+
 # Stops here instead of carrying on like every other failed step: git and
 # python3, which later steps call, are placeholder commands in /usr/bin until
 # the tools are installed, and running one opens the same install dialog
@@ -974,6 +1019,7 @@ if [ "$STEPS_FAILED" -gt 0 ]; then
   echo ""
   echo "${C_DIM}─────────────────────────────────────────────────────────${C_RESET}"
   echo "${C_FAIL}Stopped: install Xcode Command Line Tools, then re-run setup.sh.${C_RESET}"
+  echo "${C_DIM}Full details: $SETUP_LOG${C_RESET}"
   exit 1
 fi
 
@@ -996,3 +1042,4 @@ if [ "$STEPS_FAILED" -eq 0 ]; then
 else
   echo "${C_FAIL}${STEPS_OK}/${TOTAL} steps succeeded, ${STEPS_FAILED} failed.${C_RESET} ${C_DIM}See ✗ above. Reload your shell: source ~/.zshrc${C_RESET}"
 fi
+echo "${C_DIM}Full details of every step: $SETUP_LOG${C_RESET}"
