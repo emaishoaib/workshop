@@ -83,6 +83,10 @@ print_sub() {
 # In LIVE mode the header is printed first with a spinner, and redrawn in
 # place -- by moving the cursor up past the action lines printed since --
 # until the step finishes and it becomes a ✓ or ✗.
+#
+# The action lines are only kept for a step that failed. A successful step
+# collapses to its one header line (plus any warnings, which ask you to do
+# something), so a finished run reads as one line per step.
 run_step() {
   local label="$1" fn="$2"
   local shown=0 frame=0 paused=0 total status cols max detail_max line mark detail
@@ -175,7 +179,13 @@ run_step() {
     done < "$STEP_DIR/warnings"
   fi
 
-  if [ "$LIVE" -eq 1 ] && [ "$paused" -eq 0 ]; then
+  if [ "$LIVE" -eq 1 ] && [ "$paused" -eq 0 ] && [ "$status" -eq 0 ]; then
+    # Back up to the header and clear everything from there down, taking the
+    # action lines with it, then print the finished header in its place.
+    printf '\033[%dA\r\033[J' $((shown + 1))
+    print_header "$mark" "$label" "${detail:0:$detail_max}"
+    printf '\n'
+  elif [ "$LIVE" -eq 1 ] && [ "$paused" -eq 0 ]; then
     printf '\033[%dA\r' $((shown + 1))
     print_header "$mark" "$label" "${detail:0:$detail_max}"
     printf '\033[K\033[%dB\r' $((shown + 1))
@@ -188,12 +198,12 @@ run_step() {
     fi
   else
     # Not live, or paused: a password prompt may have been printed below the
-    # header, so it can't safely be redrawn in place. Print the finished
-    # header as a new line instead (plus, when not live, the action lines,
-    # which weren't printed while the step ran).
+    # header, so it can't safely be redrawn or cleared in place. Print the
+    # finished header as a new line instead (plus, when not live and the
+    # step failed, the action lines, which weren't printed while it ran).
     print_header "$mark" "$label" "$detail"
     printf '\n'
-    if [ "$LIVE" -eq 0 ]; then
+    if [ "$LIVE" -eq 0 ] && [ "$status" -ne 0 ]; then
       local i=0
       while IFS= read -r line; do
         i=$((i + 1))
