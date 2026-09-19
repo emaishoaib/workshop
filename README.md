@@ -31,8 +31,6 @@ Each directory has its own README with the full detail — this is just the map.
 | [`hammerspoon/`](hammerspoon/README.md) | macOS automation — hotkeys, Finder shortcuts, login hooks |
 | [`vscode/`](vscode/README.md) | Synced settings and keybindings, the extension list, and two custom extensions |
 | [`chrome/keepa-lookup/`](chrome/keepa-lookup/README.md) | Chrome extension — one-click jump from an Amazon listing to its Keepa price-history page |
-| [`cmux/`](cmux/README.md) | Config for the cmux terminal — app settings, Ghostty theme, PATH setup, socket access mode |
-| [`raycast/`](raycast/README.md) | Raycast extension for jumping to an open cmux workspace by name. Requires signing in to Raycast; see its README for the (manual) build/import steps |
 | [`ai/`](ai/CLAUDE.md) | Global Claude instructions, symlinked to `~/.claude/CLAUDE.md` so changes stay version-controlled |
 | [`macos/bettermouse/`](macos/bettermouse/README.md) | Version-controlled BetterMouse config export — currently also carries the screenshot/recording shortcuts Hammerspoon can't handle right now |
 | [`macos/manual-setup.md`](macos/manual-setup.md) | macOS settings that can't be automated — check this on any new machine |

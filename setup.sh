@@ -517,40 +517,6 @@ step_chrome_keepa_lookup() {
   fi
 }
 
-step_cmux() {
-  local was_missing=0
-
-  if [ ! -d "/Applications/cmux.app" ]; then
-    was_missing=1
-    brew tap manaflow-ai/cmux || return 1
-    brew install --cask cmux || return 1
-  fi
-
-  mkdir -p "$HOME/.config/cmux" "$HOME/.config/ghostty"
-
-  # Two fixed links -- not worth an associative array, which the stock
-  # macOS /bin/bash (3.2, no Homebrew bash installed) doesn't support: it
-  # errors on `declare -A` and silently carries on with a bogus scalar,
-  # so a loop over "${!arr[@]}" here would run once with garbage values.
-  local target source
-  for target in "$HOME/.config/cmux/cmux.json" "$HOME/.config/ghostty/config"; do
-    case "$target" in
-      *cmux.json) source="$WORKSHOP_DIR/cmux/cmux.json" ;;
-      *) source="$WORKSHOP_DIR/cmux/ghostty/config" ;;
-    esac
-    if ! { [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; }; then
-      ln -sf "$source" "$target"
-    fi
-  done
-
-  if [ "$was_missing" -eq 1 ]; then
-    step_detail "installed, config linked"
-    step_warn "launch cmux once to finish installing its CLI, then reload your shell"
-  else
-    step_detail "cmux.json, ghostty config linked"
-  fi
-}
-
 # --- Run ---
 
 echo "${C_DIM}── workshop setup ─────────────────────────────────────${C_RESET}"
@@ -570,7 +536,6 @@ run_step "Video-vision key"    step_video_vision_key
 run_step "VS Code settings"   step_vscode_settings
 run_step "VS Code extensions" step_vscode_extensions
 run_step "Chrome: keepa-lookup" step_chrome_keepa_lookup
-run_step "cmux"                step_cmux
 
 echo ""
 echo "${C_DIM}─────────────────────────────────────────────────────────${C_RESET}"
