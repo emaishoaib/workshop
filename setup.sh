@@ -85,7 +85,7 @@ print_sub() {
 # until the step finishes and it becomes a ✓ or ✗.
 run_step() {
   local label="$1" fn="$2"
-  local shown=0 frame=0 paused=0 total status cols max line mark detail
+  local shown=0 frame=0 paused=0 total status cols max detail_max line mark detail
   local trailing=() colors=()
 
   STEP_DIR="$(mktemp -d)"
@@ -94,10 +94,17 @@ run_step() {
   # The header goes out before the step starts, so nothing the step prints
   # straight to the terminal (a password prompt) can land ahead of it.
   if [ "$LIVE" -eq 1 ]; then
-    cols="$(tput cols 2>/dev/null || echo 80)"
-    # Action lines are cut to the terminal width: one that wrapped onto a
-    # second row would throw off the cursor-up count used for the redraw.
+    # Asks the terminal itself: `tput cols` inside $(...) sees a pipe, not
+    # the terminal, and always falls back to 80.
+    cols="$(stty size </dev/tty 2>/dev/null | awk '{print $2}')"
+    [ -n "$cols" ] && [ "$cols" -gt 0 ] 2>/dev/null || cols=80
+    # Action lines and the header's status text are cut to the terminal
+    # width: a line that wrapped onto a second row would throw off the
+    # cursor-up count used for the redraw. 28 = the mark, label column and
+    # spaces before the status text.
     max=$((cols - 6))
+    detail_max=$((cols - 28))
+    [ "$detail_max" -lt 0 ] && detail_max=0
     printf '\033[?25l'
     print_header "${SPINNER_FRAMES[0]}" "$label"
     printf '\n'
@@ -139,6 +146,17 @@ run_step() {
   status=$?
   STEP_PID=""
 
+  # A step can write its last action line and exit between the loop's final
+  # read and its "still running?" check -- print any such stragglers now.
+  if [ "$LIVE" -eq 1 ]; then
+    total=$(wc -l < "$STEP_DIR/actions")
+    while [ "$shown" -lt "$total" ]; do
+      shown=$((shown + 1))
+      line="$(sed -n "${shown}p" "$STEP_DIR/actions")"
+      print_sub '├─' "$C_DIM" "${line:0:$max}"
+    done
+  fi
+
   detail="$(cat "$STEP_DIR/detail" 2>/dev/null)"
   if [ "$status" -eq 0 ]; then
     mark="${C_OK}✓${C_RESET}"
@@ -159,7 +177,7 @@ run_step() {
 
   if [ "$LIVE" -eq 1 ] && [ "$paused" -eq 0 ]; then
     printf '\033[%dA\r' $((shown + 1))
-    print_header "$mark" "$label" "$detail"
+    print_header "$mark" "$label" "${detail:0:$detail_max}"
     printf '\033[K\033[%dB\r' $((shown + 1))
     # The last action line was drawn as ├─ while more might follow. If
     # nothing else comes under it, redraw it as the closing └─.
@@ -207,40 +225,64 @@ run_step() {
 # macOS dialog, and the user should choose when to go through it.
 # `xcode-select -p` just prints the install path (or fails), no dialog.
 step_xcode_clt() {
-  if xcode-select -p &>/dev/null; then
+  local path
+  if path="$(xcode-select -p 2>/dev/null)"; then
+    step_action "Checking for Xcode Command Line Tools: found at $path"
     step_detail "installed"
     return 0
   fi
 
+  step_action "Checking for Xcode Command Line Tools: not found"
   step_detail "not installed"
   step_warn "run: xcode-select --install"
   step_warn "then re-run: bash setup.sh"
   return 1
 }
 
+# Installs <command> with brew if it isn't found, saying which it was either
+# way. Adds it to the caller's `have` array (bash functions can see their
+# caller's local variables) for the step's summary line.
+brew_ensure() {
+  local cmd="$1"
+  if command -v "$cmd" &>/dev/null; then
+    step_action "Checking for $cmd: installed"
+    have+=("$cmd")
+    return 0
+  fi
+
+  step_action "Checking for $cmd: not installed -- installing with brew"
+  brew install "$cmd" || return 1
+  have+=("$cmd (installed)")
+}
+
 step_prerequisites() {
   if ! command -v brew &>/dev/null; then
+    step_action "Checking for Homebrew: not found"
     echo "Homebrew not found -- install it first: https://brew.sh"
     return 1
   fi
+  step_action "Checking for Homebrew: found"
 
   local have=() failed=0
 
   if command -v fzf &>/dev/null; then
+    step_action "Checking for fzf: installed"
     have+=("fzf")
-  elif brew install fzf && "$(brew --prefix)/opt/fzf/install" --all --no-bash --no-fish; then
-    have+=("fzf (installed)")
   else
-    failed=1
+    step_action "Checking for fzf: not installed -- installing with brew"
+    if brew install fzf; then
+      step_action "Running fzf's own installer (adds its key bindings and completion to ~/.zshrc)"
+      if "$(brew --prefix)/opt/fzf/install" --all --no-bash --no-fish; then
+        have+=("fzf (installed)")
+      else
+        failed=1
+      fi
+    else
+      failed=1
+    fi
   fi
 
-  if command -v gh &>/dev/null; then
-    have+=("gh")
-  elif brew install gh; then
-    have+=("gh (installed)")
-  else
-    failed=1
-  fi
+  brew_ensure gh || failed=1
 
   step_detail "$(join_words "${have[@]}")"
   [ "$failed" -eq 0 ]
@@ -256,27 +298,31 @@ NVM_VERSION="v0.40.7"
 # ~/.zshrc. An existing default Node version is left alone -- only a machine
 # with no default gets the current LTS.
 step_node() {
-  local installed="" result
+  local installed=""
 
-  if [ ! -s "$HOME/.nvm/nvm.sh" ]; then
+  if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    step_action "Checking for nvm: installed"
+  else
+    step_action "Checking for nvm: not installed -- running nvm's $NVM_VERSION install script (it also adds nvm to ~/.zshrc)"
     curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh" | bash || return 1
     installed="nvm installed, "
   fi
 
   # A subshell, so loading nvm here never changes the PATH of later steps.
-  # Only the last line goes to stdout; nvm's own output goes to the step log.
-  result="$(
+  (
     export NVM_DIR="$HOME/.nvm"
     \. "$NVM_DIR/nvm.sh" || exit 1
     if [ "$(nvm version default)" = "N/A" ]; then
-      nvm install --lts >&2 && nvm alias default 'lts/*' >&2 || exit 1
-      echo "default node $(nvm version default) (installed)"
+      step_action "Checking for a default Node version: none -- installing the current LTS with nvm"
+      nvm install --lts || exit 1
+      step_action "Making it nvm's default"
+      nvm alias default 'lts/*' || exit 1
+      step_detail "${installed}default node $(nvm version default) (installed)"
     else
-      echo "default node $(nvm version default)"
+      step_action "Checking for a default Node version: $(nvm version default)"
+      step_detail "${installed}default node $(nvm version default)"
     fi
-  )" || return 1
-
-  step_detail "${installed}${result}"
+  )
 }
 
 step_zshrc() {
@@ -301,9 +347,11 @@ step_zshrc() {
   printf '\n%s\n%s\n%s\n' "$marker_start" "$source_line" "$marker_end" >> "$tmp"
 
   if [ "$before" = "$(cat "$tmp")" ]; then
+    step_action "Checking ~/.zshrc for the workshop block: up to date"
     step_detail "already sourced"
     rm -f "$tmp"
   else
+    step_action "Checking ~/.zshrc for the workshop block: missing or outdated -- rewriting it"
     mv "$tmp" "$ZSHRC"
     step_detail "~/.zshrc synced"
   fi
@@ -314,14 +362,19 @@ step_gitignore() {
   global_gitignore="$(git config --global core.excludesfile)"
   if [ -z "$global_gitignore" ]; then
     global_gitignore="$HOME/.gitignore_global"
+    step_action "Checking git for a global gitignore: none set -- registering ~/.gitignore_global"
     git config --global core.excludesfile "$global_gitignore"
+  else
+    step_action "Checking git for a global gitignore: $global_gitignore"
   fi
   global_gitignore="${global_gitignore/#\~/$HOME}"
 
   touch "$global_gitignore"
   if grep -qxF ".dbtoolsrc" "$global_gitignore" 2>/dev/null; then
+    step_action "Checking it for .dbtoolsrc: already listed"
     step_detail ".dbtoolsrc already ignored"
   else
+    step_action "Checking it for .dbtoolsrc: missing -- adding it"
     # A file with no trailing newline (common — many editors don't force
     # one) would otherwise get our new line glued onto its last line
     # instead of starting a fresh one, silently corrupting an existing
@@ -350,7 +403,16 @@ find_claude_bin() {
 # Claude Code underneath and reads the same ~/.claude folder. setup.sh never
 # installs Claude itself; the Claude steps just skip when neither is present.
 claude_installed() {
-  [ -n "$(find_claude_bin)" ] || [ -d "/Applications/Claude.app" ]
+  local bin
+  bin="$(find_claude_bin)"
+  if [ -n "$bin" ]; then
+    step_action "Checking for Claude: CLI found at $bin"
+  elif [ -d "/Applications/Claude.app" ]; then
+    step_action "Checking for Claude: desktop app found"
+  else
+    step_action "Checking for Claude: neither the CLI nor the desktop app found"
+    return 1
+  fi
 }
 
 step_claude_config() {
@@ -361,8 +423,10 @@ step_claude_config() {
 
   mkdir -p "$HOME/.claude"
   if [ -L "$HOME/.claude/CLAUDE.md" ] && [ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$WORKSHOP_DIR/ai/CLAUDE.md" ]; then
+    step_action "Checking ~/.claude/CLAUDE.md: already linked to ai/CLAUDE.md"
     step_detail "already symlinked"
   else
+    step_action "Linking ~/.claude/CLAUDE.md to ai/CLAUDE.md"
     ln -sf "$WORKSHOP_DIR/ai/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
     step_detail "~/.claude/CLAUDE.md linked"
   fi
@@ -380,11 +444,14 @@ step_claude_skills() {
   mkdir -p "$HOME/.claude"
 
   if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+    step_action "Checking ~/.claude/skills: already linked to ai/skills"
     step_detail "already symlinked"
   elif [ -e "$target" ] && [ ! -L "$target" ]; then
+    step_action "Checking ~/.claude/skills: a real folder, not a link -- leaving it alone"
     step_detail "skipped -- $target is a real directory"
     step_warn "$target already exists as a real directory, not a symlink -- move its contents into $source first, then re-run setup.sh"
   else
+    step_action "Linking ~/.claude/skills to ai/skills"
     ln -sf "$source" "$target"
     step_detail "~/.claude/skills linked"
   fi
@@ -395,7 +462,10 @@ step_hammerspoon() {
   local target="$HOME/.hammerspoon"
   local installed=""
 
-  if [ ! -d "/Applications/Hammerspoon.app" ]; then
+  if [ -d "/Applications/Hammerspoon.app" ]; then
+    step_action "Checking for Hammerspoon: installed"
+  else
+    step_action "Checking for Hammerspoon: not installed -- installing with brew (it may ask for your password)"
     step_pause_live
     brew install --cask hammerspoon || return 1
     installed="installed, "
@@ -403,11 +473,14 @@ step_hammerspoon() {
   fi
 
   if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+    step_action "Checking ~/.hammerspoon: already linked to hammerspoon/"
     step_detail "${installed}already symlinked"
   elif [ -e "$target" ] && [ ! -L "$target" ]; then
+    step_action "Checking ~/.hammerspoon: a real folder, not a link -- leaving it alone"
     step_detail "${installed}skipped linking -- see hammerspoon/README.md"
     step_warn "$target is a real directory, not a symlink -- migrate it into the repo first (hammerspoon/README.md)"
   else
+    step_action "Linking ~/.hammerspoon to hammerspoon/"
     ln -sf "$source" "$target"
     step_detail "${installed}~/.hammerspoon linked"
   fi
@@ -441,18 +514,25 @@ PY
 step_bettermouse() {
   local installed=""
 
-  if [ ! -d "/Applications/BetterMouse.app" ]; then
+  if [ -d "/Applications/BetterMouse.app" ]; then
+    step_action "Checking for BetterMouse: installed"
+  else
+    step_action "Checking for BetterMouse: not installed -- installing with brew (it may ask for your password)"
     step_pause_live
     brew install --cask bettermouse || return 1
     installed="installed, "
   fi
 
   if bettermouse_config_applied; then
+    step_action "Comparing the repo's export with BetterMouse's live settings: they match"
     step_detail "${installed}config applied"
     return 0
   fi
 
+  step_action "Comparing the repo's export with BetterMouse's live settings: they differ"
+  step_action "Copying the export's path to the clipboard"
   printf '%s' "$BETTERMOUSE_CONFIG" | pbcopy 2>/dev/null
+  step_action "Opening BetterMouse"
   open -a "BetterMouse" 2>/dev/null
   step_detail "${installed}config not imported -- path copied to clipboard"
   # The path is spelled out too, because a later step (Chrome) can replace
@@ -466,16 +546,19 @@ step_claude_permissions() {
     return 0
   fi
 
-  if ! command -v jq &>/dev/null; then
-    brew install jq || return 1
-  fi
+  local have=()
+  brew_ensure jq || return 1
 
   local claude_settings="$HOME/.claude/settings.json"
   local repo_settings="$WORKSHOP_DIR/ai/settings.json"
   local tmp
 
-  [ -f "$claude_settings" ] || echo '{}' > "$claude_settings"
+  if [ ! -f "$claude_settings" ]; then
+    step_action "Creating an empty ~/.claude/settings.json"
+    echo '{}' > "$claude_settings"
+  fi
 
+  step_action "Merging the $(jq '.permissions.allow | length' "$repo_settings") allowlist entries from ai/settings.json into ~/.claude/settings.json"
   tmp="$(mktemp)"
   jq -s '
     .[0] * {
@@ -493,21 +576,8 @@ step_claude_permissions() {
 step_video_vision_prereqs() {
   local have=() failed=0
 
-  if command -v ffmpeg &>/dev/null; then
-    have+=("ffmpeg")
-  elif brew install ffmpeg; then
-    have+=("ffmpeg (installed)")
-  else
-    failed=1
-  fi
-
-  if command -v yt-dlp &>/dev/null; then
-    have+=("yt-dlp")
-  elif brew install yt-dlp; then
-    have+=("yt-dlp (installed)")
-  else
-    failed=1
-  fi
+  brew_ensure ffmpeg || failed=1
+  brew_ensure yt-dlp || failed=1
 
   step_detail "$(join_words "${have[@]}")"
   [ "$failed" -eq 0 ]
@@ -526,7 +596,11 @@ VIDEO_VISION_DIR="$HOME/.claude-video-vision/vendor/$VIDEO_VISION_VERSION"
 # loads nvm, same reasoning as install_local_extension above: setup.sh's own
 # PATH has no guarantee of finding node/npm otherwise.
 fetch_video_vision() {
-  [ -f "$VIDEO_VISION_DIR/dist/index.js" ] && return 0
+  if [ -f "$VIDEO_VISION_DIR/dist/index.js" ]; then
+    step_action "Checking for claude-video-vision v$VIDEO_VISION_VERSION: already downloaded"
+    return 0
+  fi
+  step_action "Checking for claude-video-vision v$VIDEO_VISION_VERSION: not downloaded -- fetching it from npm"
 
   local tmp
   tmp="$(mktemp -d)"
@@ -545,6 +619,7 @@ fetch_video_vision() {
       && mkdir -p "$VIDEO_VISION_DIR" \
       && cp -R package/. "$VIDEO_VISION_DIR/" \
       && cd "$VIDEO_VISION_DIR" \
+      && step_action "Installing its dependencies with npm" \
       && npm install --omit=dev --silent
   )
   local status=$?
@@ -560,13 +635,17 @@ step_video_vision_mcp() {
   local claude_bin
   claude_bin="$(find_claude_bin)"
   if [ -z "$claude_bin" ]; then
+    step_action "Checking for the Claude CLI: not found"
     step_detail "skipped -- Claude CLI not installed"
     return 0
   fi
+  step_action "Checking for the Claude CLI: found at $claude_bin"
 
   fetch_video_vision || { step_detail "failed to fetch v$VIDEO_VISION_VERSION"; return 1; }
 
+  step_action "Removing any existing claude-video-vision registration"
   "$claude_bin" mcp remove claude-video-vision --scope user &>/dev/null || true
+  step_action "Registering claude-video-vision with claude mcp add, at user scope"
   "$claude_bin" mcp add --transport stdio claude-video-vision --scope user \
     -- node "$VIDEO_VISION_DIR/dist/index.js" || return 1
 
@@ -575,16 +654,24 @@ step_video_vision_mcp() {
 
 step_video_vision_key() {
   if [ -z "$(find_claude_bin)" ]; then
+    step_action "Checking for the Claude CLI: not found"
     step_detail "skipped -- Claude CLI not installed"
     return 0
   fi
 
   local local_env="$WORKSHOP_DIR/ai/local.env"
-  if [ -n "$GEMINI_API_KEY" ] || { [ -f "$local_env" ] && grep -q "^export GEMINI_API_KEY=" "$local_env"; }; then
+  if [ -n "$GEMINI_API_KEY" ]; then
+    step_action "Checking for GEMINI_API_KEY: set in your environment"
+    step_detail "configured"
+    return 0
+  fi
+  if [ -f "$local_env" ] && grep -q "^export GEMINI_API_KEY=" "$local_env"; then
+    step_action "Checking for GEMINI_API_KEY: set in ai/local.env"
     step_detail "configured"
     return 0
   fi
 
+  step_action "Checking for GEMINI_API_KEY: not set"
   step_detail "not set"
   step_warn "add GEMINI_API_KEY to $local_env (not version controlled) to enable the Gemini backend -- YouTube captions still work without it"
 }
@@ -595,8 +682,10 @@ VSCODE_APP="/Applications/Visual Studio Code.app"
 # warning when the app is missing, instead of failing.
 vscode_installed() {
   if [ -d "$VSCODE_APP" ]; then
+    step_action "Checking for VS Code: installed"
     return 0
   fi
+  step_action "Checking for VS Code: not installed"
   step_detail "skipped -- VS Code not installed"
   step_warn "install VS Code, then re-run: bash setup.sh"
   return 1
@@ -613,8 +702,10 @@ step_vscode_settings() {
     target="$vscode_dir/$file"
     source="$WORKSHOP_DIR/vscode/$file"
     if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+      step_action "Checking VS Code's $file: already linked to vscode/$file"
       linked+=("$file")
     else
+      step_action "Linking VS Code's $file to vscode/$file"
       ln -sf "$source" "$target"
       linked+=("$file (linked)")
     fi
@@ -658,6 +749,7 @@ install_local_extension() {
     command -v npm &>/dev/null || { echo "npm not found -- install Node.js to build $ext"; exit 1; }
     cd "$dir" && npm install && npm run compile && npm run package
   ) || return 1
+  step_action "Installing $ext from the built .vsix"
 
   vsix="$(ls -t "$dir"/*.vsix 2>/dev/null | head -1)"
   [ -n "$vsix" ] || { echo "no .vsix produced for $ext"; return 1; }
@@ -677,10 +769,13 @@ step_vscode_extensions() {
   fi
 
   if ! command -v code &>/dev/null; then
+    step_action "Checking for the code command: not found"
     step_detail "skipped -- 'code' command not found"
     step_warn "in VS Code, run \"Shell Command: Install 'code' command in PATH\" from the Command Palette, then re-run: bash setup.sh"
     return 0
   fi
+
+  step_action "Checking for the code command: found"
 
   local already=0 newly=0 failed=0 ext installed_list local_dir exts
   # --show-versions so local extensions can be compared against their
@@ -694,6 +789,7 @@ step_vscode_extensions() {
   # as peeks at it, the shared read position shifts and corrupts whichever
   # line the loop reads next.
   mapfile -t exts < "$extensions_file"
+  step_action "Checking installed extensions against vscode/extensions.txt"
 
   for ext in "${exts[@]}"; do
     [ -z "$ext" ] && continue
@@ -709,6 +805,7 @@ step_vscode_extensions() {
         continue
       fi
 
+      step_action "$ext: custom build ${installed_version:-not installed}, repo has $local_version -- building it with npm"
       if install_local_extension "$ext" "$local_dir"; then
         newly=$((newly + 1))
       else
@@ -720,7 +817,11 @@ step_vscode_extensions() {
 
     if echo "$installed_list" | grep -qi "^$ext@"; then
       already=$((already + 1))
-    elif code --install-extension "$ext" --force &>/dev/null; then
+      continue
+    fi
+
+    step_action "$ext: not installed -- installing from the Marketplace"
+    if code --install-extension "$ext" --force &>/dev/null; then
       newly=$((newly + 1))
     else
       failed=$((failed + 1))
@@ -728,6 +829,7 @@ step_vscode_extensions() {
     fi
   done
 
+  step_action "$already already installed and up to date, left alone"
   step_detail "$newly installed, $already already present"
   [ "$failed" -eq 0 ]
 }
@@ -755,19 +857,27 @@ CHROME_PREFS="$HOME/Library/Application Support/Google/Chrome/Default/Secure Pre
 #   reload button from a shell script.
 step_chrome_keepa_lookup() {
   if [ ! -d "/Applications/Google Chrome.app" ]; then
+    step_action "Checking for Google Chrome: not installed"
     step_detail "Chrome not installed, skipped"
     return 0
   fi
+  step_action "Checking for Google Chrome: installed"
 
   if [ ! -f "$CHROME_PREFS" ] || ! grep -qF "$CHROME_EXT_DIR" "$CHROME_PREFS"; then
+    step_action "Checking Chrome's profile for keepa-lookup: not loaded"
+    step_action "Copying the extension's path to the clipboard"
     printf '%s' "$CHROME_EXT_DIR" | pbcopy 2>/dev/null
+    step_action "Opening chrome://extensions"
     open -a "Google Chrome" "chrome://extensions" 2>/dev/null
     step_detail "not loaded yet -- path copied to clipboard"
     step_warn "Chrome: enable Developer mode, click \"Load unpacked\", paste the path (already on your clipboard)"
     return 0
   fi
 
+  step_action "Checking Chrome's profile for keepa-lookup: loaded"
+
   if ! command -v jq &>/dev/null; then
+    step_action "Skipping the version check: jq not installed"
     step_detail "already loaded"
     return 0
   fi
@@ -782,10 +892,13 @@ step_chrome_keepa_lookup() {
   ' "$CHROME_PREFS" | head -1)"
 
   if [ -n "$loaded_version" ] && [ "$loaded_version" != "$disk_version" ]; then
+    step_action "Comparing the loaded version with manifest.json: v$loaded_version loaded, v$disk_version on disk"
+    step_action "Opening chrome://extensions"
     open -a "Google Chrome" "chrome://extensions" 2>/dev/null
     step_detail "loaded v$loaded_version, disk has v$disk_version"
     step_warn "Chrome: keepa-lookup changed since it was last loaded -- click its reload icon on chrome://extensions"
   else
+    step_action "Comparing the loaded version with manifest.json: both v$disk_version"
     step_detail "already loaded, up to date"
   fi
 }
@@ -795,7 +908,14 @@ step_chrome_keepa_lookup() {
 # `docker compose version` works without the Docker daemon running, and
 # running isn't needed until ddb/dmig are actually used.
 step_docker() {
-  if command -v docker &>/dev/null && docker compose version &>/dev/null; then
+  if ! command -v docker &>/dev/null; then
+    step_action "Checking for docker: not found"
+  elif ! docker compose version &>/dev/null; then
+    step_action "Checking for docker: found"
+    step_action "Checking for docker compose: not found"
+  else
+    step_action "Checking for docker: found"
+    step_action "Checking for docker compose: found"
     step_detail "installed"
     return 0
   fi
