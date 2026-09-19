@@ -18,8 +18,14 @@ recording options) are *not* handled here right now — see the note in
 
 ## Setup
 
-Move your existing Hammerspoon config into the repo, then symlink so Hammerspoon
-can still find it at the path it expects:
+`setup.sh` installs Hammerspoon with Homebrew if it isn't already in
+`/Applications`, then creates the symlink below. After a fresh install, open
+Hammerspoon once and grant it Accessibility access in System Settings →
+Privacy & Security. Its hotkeys don't fire without it.
+
+If you already have a Hammerspoon config that isn't in the repo yet, setup
+won't overwrite it. Move it into the repo by hand first, then symlink so
+Hammerspoon can still find it at the path it expects:
 
 ```bash
 # 1. Copy your existing init.lua into the repo first

@@ -220,15 +220,22 @@ step_claude_skills() {
 step_hammerspoon() {
   local source="$WORKSHOP_DIR/hammerspoon"
   local target="$HOME/.hammerspoon"
+  local installed=""
+
+  if [ ! -d "/Applications/Hammerspoon.app" ]; then
+    brew install --cask hammerspoon || return 1
+    installed="installed, "
+    step_warn "open Hammerspoon once and grant it Accessibility access (System Settings -> Privacy & Security) -- its hotkeys don't fire without it"
+  fi
 
   if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
-    step_detail "already symlinked"
+    step_detail "${installed}already symlinked"
   elif [ -e "$target" ] && [ ! -L "$target" ]; then
-    step_detail "skipped -- see hammerspoon/README.md"
+    step_detail "${installed}skipped linking -- see hammerspoon/README.md"
     step_warn "$target is a real directory, not a symlink -- migrate it into the repo first (hammerspoon/README.md)"
   else
     ln -sf "$source" "$target"
-    step_detail "~/.hammerspoon linked"
+    step_detail "${installed}~/.hammerspoon linked"
   fi
 }
 
