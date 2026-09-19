@@ -182,10 +182,128 @@ list_ssh_keys() {
   fi
 }
 
+# ── recreate_repo: delete this repo on GitHub and push it back fresh ─────────
+# Runs from inside a local repo. The point is purging commits GitHub still
+# holds after a history rewrite: deleting the repo removes them at once,
+# where a force-push leaves them reachable by ID until GitHub garbage-collects.
+# Keeps visibility and description; everything else on GitHub (issues, PRs,
+# releases, stars, settings) is lost, so it shows those counts and makes you
+# type the repo name first. It can also come back under a new name, in which
+# case origin is repointed and the local folder can be renamed to match.
+
+# <new_name> -- offers to rename the repo's top-level folder to <new_name>,
+# when it isn't already called that and nothing's in the way.
+rename_local_dir() {
+  local new_name="$1" top parent answer
+  top=$(git rev-parse --show-toplevel) || return
+  parent=$(dirname "$top")
+  [ "$(basename "$top")" = "$new_name" ] && return
+  if [ -e "$parent/$new_name" ]; then
+    warn "Not renaming the local folder: $parent/$new_name already exists."
+    return
+  fi
+
+  answer=$(ask "Rename the local folder $(basename "$top") → $new_name too? [y/N]:")
+  [[ "$(echo "$answer" | tr '[:upper:]' '[:lower:]')" == "y" ]] || return
+  mv "$top" "$parent/$new_name" || { err "Rename failed — the folder is unchanged."; return; }
+  ok "Renamed the local folder to $parent/$new_name."
+  warn "Your shell is still in the old path — run: cd \"$parent/$new_name\""
+  warn "Anything pointing at the old path (symlinks, editor workspaces) needs updating — for the workshop repo, re-run setup.sh."
+}
+
+recreate_repo() {
+  echo ""
+  local url slug
+  url=$(git remote get-url origin 2>/dev/null) \
+    || { err "Run this inside a git repo that has an 'origin' remote."; return; }
+  case "$url" in
+    git@github.com:*)     slug="${url#git@github.com:}" ;;
+    https://github.com/*) slug="${url#https://github.com/}" ;;
+    *) err "origin isn't a GitHub repo: $url"; return ;;
+  esac
+  slug="${slug%.git}"
+
+  local vis desc
+  vis=$(gh repo view "$slug" --json visibility --jq '.visibility | ascii_downcase') \
+    || { err "Couldn't read $slug from GitHub."; return; }
+  desc=$(gh repo view "$slug" --json description --jq '.description // ""')
+
+  # Checked before anything is deleted: a taken name would otherwise leave
+  # you with the old repo gone and nowhere to push.
+  local owner="${slug%%/*}" old_name="${slug#*/}" new_name new_slug
+  new_name=$(ask "Name for the re-created repo [$old_name]:")
+  new_name="${new_name:-$old_name}"
+  new_slug="$owner/$new_name"
+  if [ "$new_slug" != "$slug" ] && gh repo view "$new_slug" &>/dev/null; then
+    err "$new_slug already exists on GitHub — pick another name. Nothing changed."
+    return
+  fi
+
+  # Anything that only exists on GitHub would be gone for good, so bring
+  # tags down first, and list branches that have no local copy.
+  git fetch --quiet --tags origin || { err "git fetch failed."; return; }
+  local remote_only
+  remote_only=$(git for-each-ref --format='%(refname:lstrip=3)' "refs/remotes/origin/" \
+    | grep -v '^HEAD$' \
+    | while read -r b; do git show-ref --verify --quiet "refs/heads/$b" || echo "$b"; done)
+
+  local issues releases stars forks
+  issues=$(gh api "repos/$slug/issues?state=all&per_page=100" --jq 'length' 2>/dev/null)
+  releases=$(gh api "repos/$slug/releases?per_page=100" --jq 'length' 2>/dev/null)
+  stars=$(gh repo view "$slug" --json stargazerCount --jq '.stargazerCount')
+  forks=$(gh repo view "$slug" --json forkCount --jq '.forkCount')
+
+  if [ "$new_slug" = "$slug" ]; then
+    echo -e "${BOLD}Re-create github.com/$slug${RESET}"
+  else
+    echo -e "${BOLD}Re-create github.com/$slug as github.com/$new_slug${RESET}"
+  fi
+  echo "  Deletes it on GitHub, re-creates it empty, then pushes every local branch and tag."
+  echo "  Kept:  visibility ($vis), description"
+  echo "  Lost:  ${issues:-?} issues/PRs, ${releases:-?} releases, $stars stars, $forks forks, all repo settings"
+  if [ -n "$remote_only" ]; then
+    warn "These branches exist only on GitHub and would be lost:"
+    echo "$remote_only" | sed 's/^/    /'
+    warn "Check them out locally first if you want to keep them."
+  fi
+  echo ""
+
+  local typed
+  typed=$(ask "Type $slug to confirm:")
+  [ "$typed" = "$slug" ] || { warn "Didn't match — nothing changed."; return; }
+
+  if ! gh auth status 2>&1 | grep -q 'delete_repo'; then
+    warn "gh needs the delete_repo permission — approving it opens your browser."
+    gh auth refresh -h github.com -s delete_repo || { err "Permission not granted — nothing changed."; return; }
+  fi
+
+  gh repo delete "$slug" --yes || { err "Delete failed — nothing changed."; return; }
+  ok "Deleted $slug on GitHub."
+
+  gh repo create "$new_slug" "--$vis" --description "$desc" \
+    || { err "Create failed. Re-run: gh repo create $new_slug --$vis, then git push -u origin --all && git push origin --tags"; return; }
+  ok "Re-created $new_slug ($vis)."
+
+  if [ "$new_slug" != "$slug" ]; then
+    # Same address style as before (SSH or HTTPS), just the new name.
+    case "$url" in
+      git@github.com:*) git remote set-url origin "git@github.com:$new_slug.git" ;;
+      *)                git remote set-url origin "https://github.com/$new_slug.git" ;;
+    esac
+    ok "Pointed origin at $(git remote get-url origin)."
+  fi
+
+  git push -u origin --all && git push origin --tags \
+    || { err "Push failed. Re-run: git push -u origin --all && git push origin --tags"; return; }
+  ok "Pushed every local branch and tag."
+
+  [ "$new_slug" != "$slug" ] && rename_local_dir "$new_name"
+}
+
 # ── main ──────────────────────────────────────────────────────────────────────
 require gh git fzf ssh-keygen
 
-action=$(printf "Create new repo\nList repos\nClone a repo\nList SSH keys" \
+action=$(printf "Create new repo\nList repos\nClone a repo\nRe-create this repo on GitHub\nList SSH keys" \
   | fzf --prompt="Action > " --header="gtools" --no-sort) \
   || exit 0
 
@@ -193,5 +311,6 @@ case "$action" in
   "Create new repo") create_repo   ;;
   "List repos")      list_repos    ;;
   "Clone a repo")    clone_repo    ;;
+  "Re-create this repo on GitHub") recreate_repo ;;
   "List SSH keys")   list_ssh_keys ;;
 esac
