@@ -251,7 +251,9 @@ step_xcode_clt() {
 
 # Installs <command> with brew if it isn't found, saying which it was either
 # way. Adds it to the caller's `have` array (bash functions can see their
-# caller's local variables) for the step's summary line.
+# caller's local variables) for the step's summary line. Summary lines use
+# one rule throughout: a plain name was already there, "(just installed)"
+# means this run installed it.
 brew_ensure() {
   local cmd="$1"
   if command -v "$cmd" &>/dev/null; then
@@ -262,18 +264,19 @@ brew_ensure() {
 
   step_action "Checking for $cmd: not installed -- installing with brew"
   brew install "$cmd" || return 1
-  have+=("$cmd (installed)")
+  have+=("$cmd (just installed)")
 }
 
 step_prerequisites() {
   if ! command -v brew &>/dev/null; then
     step_action "Checking for Homebrew: not found"
+    step_detail "Homebrew not found"
     echo "Homebrew not found -- install it first: https://brew.sh"
     return 1
   fi
   step_action "Checking for Homebrew: found"
 
-  local have=() failed=0
+  local have=("Homebrew") failed=0
 
   if command -v fzf &>/dev/null; then
     step_action "Checking for fzf: installed"
@@ -283,7 +286,7 @@ step_prerequisites() {
     if brew install fzf; then
       step_action "Running fzf's own installer (adds its key bindings and completion to ~/.zshrc)"
       if "$(brew --prefix)/opt/fzf/install" --all --no-bash --no-fish; then
-        have+=("fzf (installed)")
+        have+=("fzf (just installed)")
       else
         failed=1
       fi
@@ -308,14 +311,14 @@ NVM_VERSION="v0.40.7"
 # ~/.zshrc. An existing default Node version is left alone -- only a machine
 # with no default gets the current LTS.
 step_node() {
-  local installed=""
+  local nvm_part="nvm, "
 
   if [ -s "$HOME/.nvm/nvm.sh" ]; then
     step_action "Checking for nvm: installed"
   else
     step_action "Checking for nvm: not installed -- running nvm's $NVM_VERSION install script (it also adds nvm to ~/.zshrc)"
     curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh" | bash || return 1
-    installed="nvm installed, "
+    nvm_part="nvm (just installed), "
   fi
 
   # A subshell, so loading nvm here never changes the PATH of later steps.
@@ -327,10 +330,10 @@ step_node() {
       nvm install --lts || exit 1
       step_action "Making it nvm's default"
       nvm alias default 'lts/*' || exit 1
-      step_detail "${installed}default node $(nvm version default) (installed)"
+      step_detail "${nvm_part}default Node $(nvm version default) (just installed)"
     else
       step_action "Checking for a default Node version: $(nvm version default)"
-      step_detail "${installed}default node $(nvm version default)"
+      step_detail "${nvm_part}default Node $(nvm version default)"
     fi
   )
 }
@@ -358,19 +361,20 @@ step_zshrc() {
 
   if [ "$before" = "$(cat "$tmp")" ]; then
     step_action "Checking ~/.zshrc for the workshop block: up to date"
-    step_detail "already sourced"
+    step_detail "~/.zshrc already sources shell/init.zsh"
     rm -f "$tmp"
   else
     step_action "Checking ~/.zshrc for the workshop block: missing or outdated -- rewriting it"
     mv "$tmp" "$ZSHRC"
-    step_detail "~/.zshrc synced"
+    step_detail "~/.zshrc updated to source shell/init.zsh"
   fi
 }
 
 step_gitignore() {
-  local global_gitignore
+  local global_gitignore shown_path set_up=0
   global_gitignore="$(git config --global core.excludesfile)"
   if [ -z "$global_gitignore" ]; then
+    set_up=1
     global_gitignore="$HOME/.gitignore_global"
     step_action "Checking git for a global gitignore: none set -- registering ~/.gitignore_global"
     git config --global core.excludesfile "$global_gitignore"
@@ -378,11 +382,12 @@ step_gitignore() {
     step_action "Checking git for a global gitignore: $global_gitignore"
   fi
   global_gitignore="${global_gitignore/#\~/$HOME}"
+  shown_path="${global_gitignore/#$HOME/~}"
 
   touch "$global_gitignore"
   if grep -qxF ".dbtoolsrc" "$global_gitignore" 2>/dev/null; then
     step_action "Checking it for .dbtoolsrc: already listed"
-    step_detail ".dbtoolsrc already ignored"
+    step_detail "$shown_path already ignores .dbtoolsrc"
   else
     step_action "Checking it for .dbtoolsrc: missing -- adding it"
     # A file with no trailing newline (common — many editors don't force
@@ -393,14 +398,18 @@ step_gitignore() {
       echo "" >> "$global_gitignore"
     fi
     echo ".dbtoolsrc" >> "$global_gitignore"
-    step_detail ".dbtoolsrc added to $global_gitignore"
+    if [ "$set_up" -eq 1 ]; then
+      step_detail "$shown_path set up, ignores .dbtoolsrc"
+    else
+      step_detail "$shown_path now ignores .dbtoolsrc"
+    fi
   fi
 }
 
 step_hammerspoon() {
   local source="$WORKSHOP_DIR/hammerspoon"
   local target="$HOME/.hammerspoon"
-  local installed=""
+  local app="app installed"
 
   if [ -d "/Applications/Hammerspoon.app" ]; then
     step_action "Checking for Hammerspoon: installed"
@@ -408,21 +417,21 @@ step_hammerspoon() {
     step_action "Checking for Hammerspoon: not installed -- installing with brew (it may ask for your password)"
     step_pause_live
     brew install --cask hammerspoon || return 1
-    installed="installed, "
+    app="app (just installed)"
     step_warn "open Hammerspoon once and grant it Accessibility access (System Settings -> Privacy & Security) -- its hotkeys don't fire without it"
   fi
 
   if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
     step_action "Checking ~/.hammerspoon: already linked to hammerspoon/"
-    step_detail "${installed}already symlinked"
+    step_detail "$app, config linked"
   elif [ -e "$target" ] && [ ! -L "$target" ]; then
     step_action "Checking ~/.hammerspoon: a real folder, not a link -- leaving it alone"
-    step_detail "${installed}skipped linking -- see hammerspoon/README.md"
+    step_detail "$app, config not linked (real folder)"
     step_warn "$target is a real directory, not a symlink -- migrate it into the repo first (hammerspoon/README.md)"
   else
     step_action "Linking ~/.hammerspoon to hammerspoon/"
     ln -sf "$source" "$target"
-    step_detail "${installed}~/.hammerspoon linked"
+    step_detail "$app, config linked"
   fi
 }
 
@@ -452,7 +461,7 @@ PY
 # preferences file directly would risk the license key stored in it -- so,
 # like the Chrome step, this only gets you to the one manual click.
 step_bettermouse() {
-  local installed=""
+  local app="app installed"
 
   if [ -d "/Applications/BetterMouse.app" ]; then
     step_action "Checking for BetterMouse: installed"
@@ -460,12 +469,12 @@ step_bettermouse() {
     step_action "Checking for BetterMouse: not installed -- installing with brew (it may ask for your password)"
     step_pause_live
     brew install --cask bettermouse || return 1
-    installed="installed, "
+    app="app (just installed)"
   fi
 
   if bettermouse_config_applied; then
     step_action "Comparing the repo's export with BetterMouse's live settings: they match"
-    step_detail "${installed}config applied"
+    step_detail "$app, config applied"
     return 0
   fi
 
@@ -474,7 +483,7 @@ step_bettermouse() {
   printf '%s' "$BETTERMOUSE_CONFIG" | pbcopy 2>/dev/null
   step_action "Opening BetterMouse"
   open -a "BetterMouse" 2>/dev/null
-  step_detail "${installed}config not imported -- path copied to clipboard"
+  step_detail "$app, config not imported -- path copied to clipboard"
   # The path is spelled out too, because a later step (Chrome) can replace
   # the clipboard before you get to this one.
   step_warn "BetterMouse: open its settings, choose import, press Cmd+Shift+G in the file picker and paste $BETTERMOUSE_CONFIG"
@@ -528,6 +537,7 @@ claude_skills() {
     step_action "Checking ~/.claude/skills: already linked to ai/skills"
   elif [ -e "$target" ] && [ ! -L "$target" ]; then
     step_action "Checking ~/.claude/skills: a real folder, not a link -- leaving it alone"
+    skills_skipped=1
     step_warn "$target already exists as a real directory, not a symlink -- move its contents into $source first, then re-run setup.sh"
   else
     step_action "Linking ~/.claude/skills to ai/skills"
@@ -536,7 +546,6 @@ claude_skills() {
 }
 
 claude_permissions() {
-  local have=()
   brew_ensure jq || return 1
 
   local claude_settings="$HOME/.claude/settings.json"
@@ -562,7 +571,7 @@ claude_permissions() {
 }
 
 video_vision_prereqs() {
-  local have=() failed=0
+  local failed=0
 
   brew_ensure ffmpeg || failed=1
   brew_ensure yt-dlp || failed=1
@@ -655,7 +664,10 @@ step_claude() {
     return 0
   fi
 
-  local failed=() claude_bin
+  # The parts report back through these (bash functions can see their
+  # caller's local variables): brew_ensure adds to `have`, and claude_skills
+  # sets `skills_skipped` when it leaves a real ~/.claude/skills alone.
+  local failed=() have=() parts=() skills_skipped=0 claude_bin item
   claude_config || failed+=("CLAUDE.md")
   claude_skills || failed+=("skills")
   claude_permissions || failed+=("permissions")
@@ -673,11 +685,19 @@ step_claude() {
     step_detail "failed: $(join_words "${failed[@]}")"
     return 1
   fi
+  parts=("CLAUDE.md")
+  [ "$skills_skipped" -eq 0 ] && parts+=("skills")
+  parts+=("permissions")
   if [ -z "$claude_bin" ]; then
-    step_detail "configured, video-vision skipped (no CLI)"
+    parts+=("video-vision skipped (no CLI)")
   else
-    step_detail "configured, video-vision v$VIDEO_VISION_VERSION"
+    parts+=("video-vision v$VIDEO_VISION_VERSION")
   fi
+  [ "$skills_skipped" -eq 1 ] && parts+=("skills skipped (real folder)")
+  for item in "${have[@]}"; do
+    case "$item" in *"(just installed)") parts+=("$item") ;; esac
+  done
+  step_detail "$(join_words "${parts[@]}")"
 }
 
 VSCODE_APP="/Applications/Visual Studio Code.app"
@@ -866,7 +886,7 @@ CHROME_PREFS="$HOME/Library/Application Support/Google/Chrome/Default/Secure Pre
 step_chrome_keepa_lookup() {
   if [ ! -d "/Applications/Google Chrome.app" ]; then
     step_action "Checking for Google Chrome: not installed"
-    step_detail "Chrome not installed, skipped"
+    step_detail "skipped -- Chrome not installed"
     return 0
   fi
   step_action "Checking for Google Chrome: installed"
@@ -886,7 +906,7 @@ step_chrome_keepa_lookup() {
 
   if ! command -v jq &>/dev/null; then
     step_action "Skipping the version check: jq not installed"
-    step_detail "already loaded"
+    step_detail "loaded, version not checked (no jq)"
     return 0
   fi
 
@@ -921,6 +941,9 @@ step_docker() {
   elif ! docker compose version &>/dev/null; then
     step_action "Checking for docker: found"
     step_action "Checking for docker compose: not found"
+    step_detail "docker compose not found"
+    step_warn "install Docker Compose (ddb and dmig in db/ need it), then re-run: bash setup.sh"
+    return 0
   else
     step_action "Checking for docker: found"
     step_action "Checking for docker compose: found"
