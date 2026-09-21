@@ -16,6 +16,28 @@ recording options) are *not* handled here right now — see the note in
 [`modules/hotkeys.lua`](modules/hotkeys.lua) and
 [`../macos/bettermouse/README.md`](../macos/bettermouse/README.md) for why.
 
+## Keyboard
+
+[`modules/keyboard.lua`](modules/keyboard.lua) swaps two keys on the
+MacBook's built-in ISO keyboard, so they match the US layout:
+
+- The `§ ±` key, left of `1`, types `` ` ~ ``.
+- The `` ` ~ `` key, left of `Z`, types `§ ±`.
+
+The swap is applied when Hammerspoon loads and again on every wake from
+sleep. External keyboards are left alone.
+
+The module matches the built-in keyboard by its vendor ID (`0x5ac`, Apple)
+and product ID (`0x343`). The product ID differs between MacBook models, so
+on another Mac the swap does nothing until it's updated. To find the right
+ID, look for "Apple Internal Keyboard" in the output of `hidutil list`.
+
+To put both keys back until the next reload:
+
+```bash
+hidutil property --matching '{"VendorID":0x5ac,"ProductID":0x343}' --set '{"UserKeyMapping":[]}'
+```
+
 ## Setup
 
 `setup.sh` installs Hammerspoon with Homebrew if it isn't already in
