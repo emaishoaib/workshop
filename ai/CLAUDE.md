@@ -9,12 +9,23 @@ fixes, typo corrections, and error resolutions.
 This covers anything that changes state outside our conversation, not only
 code: files, repos, shared documents, browser actions, external systems.
 
-Tell me what you propose to change before you change it, and let us go
-commit by commit unless I say otherwise.
+Tell me what you propose to change before you change it.
 
 Read-only investigation needs no approval. Reading files, searching,
 running git log or diff, opening a page to look at it — just do it, and
 tell me what you found.
+
+## Working in a git repo
+
+Never implement the whole thing we are building at once. Split it into
+commits first and we tackle the commits one at a time, together.
+
+For each commit, you only apply the changes and suggest a commit message.
+I review the code, we discuss it if needed, and then I do the committing.
+
+You NEVER commit yourself. Not when I say "apply it", not when the change is
+tiny, not when you are confident it is right. Staging, committing, amending
+and pushing are always mine.
 
 ## Explaining
 
