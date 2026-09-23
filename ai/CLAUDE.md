@@ -34,6 +34,11 @@ You NEVER commit yourself. Not when I say "apply it", not when the change is
 tiny, not when you are confident it is right. Staging, committing, amending
 and pushing are always mine.
 
+## Writing code
+
+No inline comments. Docstrings are fine: a comment that documents a file,
+type, function or script as a whole, placed right before it.
+
 ## Explaining
 
 Cut the number of ideas, not the depth of each one. A single idea should
