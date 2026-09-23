@@ -9,7 +9,8 @@ fixes, typo corrections, and error resolutions.
 This covers anything that changes state outside our conversation, not only
 code: files, repos, shared documents, browser actions, external systems.
 
-Tell me what you propose to change before you change it.
+Tell me what you propose to change before you change it. The one exception
+is working through an agreed list of commits — see "Working in a git repo".
 
 Read-only investigation needs no approval. Reading files, searching,
 running git log or diff, opening a page to look at it — just do it, and
@@ -20,8 +21,14 @@ tell me what you found.
 Never implement the whole thing we are building at once. Split it into
 commits first and we tackle the commits one at a time, together.
 
+Once we have agreed on the list of commits, working through it does not
+need a proposal or a confirmation per commit. When we start a commit, apply
+its changes right away. Do not describe them first and wait for a "yes".
+That step is the review, and it comes after the changes, not before.
+
 For each commit, you only apply the changes and suggest a commit message.
 I review the code, we discuss it if needed, and then I do the committing.
+Start the next commit only after I have committed this one.
 
 You NEVER commit yourself. Not when I say "apply it", not when the change is
 tiny, not when you are confident it is right. Staging, committing, amending
