@@ -341,7 +341,7 @@ ghelp() {
   echo "                           + stage, then run 'grbe done' again)"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  grbe all                 interactive rebase over every commit on the current branch vs the default branch"
-  echo "                           (on the default branch itself, over its entire history via --root)"
+  echo "                           (on the default branch itself, fuzzy-pick the oldest commit to include)"
   echo "  grbe sync                fetch origin, fast-forward local default branch, and rebase current branch onto it"
   echo "  grbe fix                 non-interactively squash all fixup! commits vs the default branch with fallback"
   echo "  grbe -N                  interactive rebase over the last N commits, pushed or not (e.g. grbe -3)"
@@ -388,7 +388,8 @@ glog() {
 #                  'git rebase --continue' directly
 # onto:            fuzzy-pick a branch and fork point (sha), then rebase onto it
 # all:              interactive rebase over every commit on the current branch vs the default branch;
-#                   on the default branch itself, over its entire history (--root)
+#                   on the default branch itself, fuzzy-pick the oldest commit to include and
+#                   rebase from there
 # sync:             fetch origin, fast-forward local default branch (no checkout needed), and rebase current branch onto it
 # -N:               interactive rebase over the last N commits (HEAD~N), pushed or not — e.g. grbe -3
 
@@ -607,10 +608,25 @@ grbe() {
   fi
 
   if [ "$1" = "all" ]; then
-    # On the default branch there's no fork point to compare against,
-    # so "every commit on the branch" means its whole history.
+    # On the default branch there's no fork point to compare against, so
+    # fuzzy-pick the oldest commit to include and rebase from there.
     if [ "$(git branch --show-current)" = "$default_branch" ]; then
-      git rebase -i --rebase-merges --root
+      local sha
+      sha=$(git log --oneline --color=always \
+        | fzf --ansi --no-sort \
+            --preview='git show --name-status --format= {1}' \
+            --preview-window=right:60% \
+            --prompt="Rebase from > " \
+            --header="Select the oldest commit to include — it and every commit after it will be rebased" \
+        | awk '{print $1}')
+      [ -z "$sha" ] && return
+
+      # The very first commit has no parent to rebase from, so use --root.
+      if git rev-parse --verify --quiet "${sha}~1" > /dev/null; then
+        git rebase -i --rebase-merges "${sha}~1"
+      else
+        git rebase -i --rebase-merges --root
+      fi
       return
     fi
     local base
