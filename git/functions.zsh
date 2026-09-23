@@ -341,6 +341,7 @@ ghelp() {
   echo "                           + stage, then run 'grbe done' again)"
   echo "  grbe onto                fuzzy-pick a branch and fork point (sha), then rebase onto it"
   echo "  grbe all                 interactive rebase over every commit on the current branch vs the default branch"
+  echo "                           (on the default branch itself, over its entire history via --root)"
   echo "  grbe sync                fetch origin, fast-forward local default branch, and rebase current branch onto it"
   echo "  grbe fix                 non-interactively squash all fixup! commits vs the default branch with fallback"
   echo "  grbe -N                  interactive rebase over the last N commits, pushed or not (e.g. grbe -3)"
@@ -386,7 +387,8 @@ glog() {
 #                  a genuine conflict, resolve it, stage it, and run 'grbe done' again rather than
 #                  'git rebase --continue' directly
 # onto:            fuzzy-pick a branch and fork point (sha), then rebase onto it
-# all:              interactive rebase over every commit on the current branch vs the default branch
+# all:              interactive rebase over every commit on the current branch vs the default branch;
+#                   on the default branch itself, over its entire history (--root)
 # sync:             fetch origin, fast-forward local default branch (no checkout needed), and rebase current branch onto it
 # -N:               interactive rebase over the last N commits (HEAD~N), pushed or not — e.g. grbe -3
 
@@ -605,6 +607,12 @@ grbe() {
   fi
 
   if [ "$1" = "all" ]; then
+    # On the default branch there's no fork point to compare against,
+    # so "every commit on the branch" means its whole history.
+    if [ "$(git branch --show-current)" = "$default_branch" ]; then
+      git rebase -i --rebase-merges --root
+      return
+    fi
     local base
     base=$(git merge-base HEAD "origin/$default_branch")
     [ -n "$base" ] && git rebase -i --rebase-merges "$base"

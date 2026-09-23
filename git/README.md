@@ -42,7 +42,7 @@ brew install gh && gh auth login
 | `grbe edit` | Fuzzy-pick (multi-select with Tab) commit(s) from those on the current branch vs the default branch, and surface them in VS Code to edit one at a time, oldest first |
 | `grbe done` | Finish editing the current commit in a `grbe edit` session — if you changed anything, commits it back in (reusing the original commit's message) and continues the rebase; if you didn't, discards it. If more commits were selected, the next one is then surfaced in VS Code the same way; once the last one is done, the stash (if any) is restored. If continuing the rebase hits a genuine conflict, resolve it, stage it, and run `grbe done` again rather than `git rebase --continue` directly |
 | `grbe onto` | Fuzzy-pick a local branch to rebase onto, then fuzzy-pick the fork point SHA from commits on the current branch |
-| `grbe all` | Interactive rebase over every commit on the current branch vs the default branch — no guessing a commit count |
+| `grbe all` | Interactive rebase over every commit on the current branch vs the default branch — no guessing a commit count. On the default branch itself, covers its entire history (`--root`) |
 | `grbe sync` | Fetch origin, fast-forward local default branch (no checkout needed), and rebase current branch onto it |
 | `grbe fix` | Non-interactively squash every `fixup!` commit into its target vs the default branch. On conflict, squashes as many as it safely can and reports the first `fixup!` commit that actually conflicts, leaving the rest untouched. Bails out (no merge commits supported) if the branch has any |
 | `grbe -N` | Interactive rebase over the last N commits (`HEAD~N`), regardless of whether they've been pushed to origin — e.g. `grbe -3`. Mirrors `glog -N` |
