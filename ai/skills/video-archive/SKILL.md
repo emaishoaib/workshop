@@ -1,6 +1,6 @@
 ---
 name: video-archive
-description: Process a video (YouTube URL or local file) into a self-contained folder under video-analysis/ containing a dense, uniform capture of frames across the entire video plus one markdown file with the complete analysis (frames embedded inline at the point they're discussed), and keep a running index.md of every video archived so far. Use when the user gives a video URL/path and asks to process, archive, or "watch" it, or invokes this skill by name.
+description: Process a video (YouTube URL or local file) into a self-contained folder containing a dense, uniform capture of frames across the entire video plus one markdown file with the complete analysis (frames embedded inline at the point they're discussed). A YouTube video's folder goes under video-analysis/; a local file's folder goes right beside the file, named after it. Keeps a running index.md in video-analysis/ of every video archived so far. Use when the user gives a video URL/path and asks to process, archive, or "watch" it, or invokes this skill by name.
 ---
 
 # Video Archive
@@ -25,10 +25,14 @@ than guessing at a substitute.
 
 ## Directory layout
 
+Where the per-video folder goes depends on the source.
+
+**YouTube:** under a shared `video-analysis/` folder.
+
 ```
 video-analysis/
   index.md
-  <slugified-title>--<video-id-or-hash>/
+  <slugified-title>--<video-id>/
     analysis.md
     frame_00-00-01.jpg
     frame_00-00-02.jpg
@@ -36,18 +40,31 @@ video-analysis/
     ... (one per second of video, by default)
 ```
 
-Flat — no category/grouping layer under `video-analysis/`. Every processed
-video gets exactly one subdirectory, named `<slugified-title>--<video-id-or-hash>`:
+Flat — no category/grouping layer under `video-analysis/`. The folder is
+the slug of the title plus the 11-character video ID from the URL (the
+part that's actually unique — titles collide, IDs don't).
 
-- YouTube: slug of the title plus the 11-character video ID from the URL
-  (the part that's actually unique — titles collide, IDs don't).
-- Local file: slug of the filename plus the first 8 characters of a sha1
-  of the file (filenames get reused and files get moved).
+**Local file:** beside the video itself, in a folder named with the
+video's exact filename minus its extension.
+
+```
+<video's directory>/
+  My Recording.mov
+  My Recording/
+    analysis.md
+    frame_00-00-01.jpg
+    frame_00-00-02.jpg
+    ... (one per second of video, by default)
+```
+
+Keep the name exactly as the file has it: same spaces, capitals and
+unusual characters. Don't slugify it and don't add a hash. The folder
+sits next to the file it came from, so the pairing is obvious on sight.
 
 `video-analysis/` itself lives next to wherever this project already keeps
 notes (look for an existing notes-like directory first); with no such
 convention, default to `video-analysis/` at the project root. Inferred,
-never asked.
+never asked. It holds `index.md` for both kinds of source.
 
 Frame filenames are just `frame_HH-MM-SS.<ext>` — no separate sequence
 number, since the timestamp alone sorts correctly and is what you'd
@@ -66,6 +83,9 @@ One row per video, minimal — nothing that's already in that video's own
 answer). Per row:
 
 - **Video** — a link to the folder's `analysis.md`, labeled with the title.
+  For a local file this is a relative path out to the folder beside the
+  video. Wrap it in angle brackets, e.g. `[Title](<../../My Recording/analysis.md>)`,
+  because these paths usually contain spaces.
 - **Date** — the video's own publish/upload date if the source provides one
   (YouTube does); otherwise the date it was archived. Say which one it is
   if it's not obvious from context.
@@ -78,11 +98,12 @@ scan, not a second copy of the analysis.
 
 ## Process
 
-1. **Check for a duplicate before doing any real work.** Work out the
-   video's unique identifier immediately — the 11-character YouTube video
-   ID from the URL, or a sha1 of the local file — before calling any
-   processing tool. Search `video-analysis/*` for a folder already ending
-   in `--<that-id-or-hash>`.
+1. **Check for a duplicate before doing any real work.** Do this before
+   calling any processing tool.
+   - YouTube: take the 11-character video ID from the URL. Search
+     `video-analysis/*` for a folder already ending in `--<that-id>`.
+   - Local file: check whether a folder with the file's name minus its
+     extension already exists beside the file.
    - **Found:** stop. Tell the user this video was already archived, give
      them the existing path, and ask whether they want to reprocess
      (overwrite) or leave it as-is. Don't burn a `video_analyze`/`video_watch`
@@ -111,12 +132,11 @@ scan, not a second copy of the analysis.
    the cached files off disk with a plain filesystem copy rather than
    routing them through the conversation.
 
-5. **Work out the per-video folder name** using the title/ID or
-   filename/hash rule above (you already have the ID/hash from step 1 —
-   just add the slugified title/filename to it).
+5. **Work out the per-video folder path** using the rules in "Directory
+   layout". For YouTube, add the slugified title to the ID from step 1.
+   For a local file, you already have the path from step 1.
 
-6. **Create `video-analysis/<folder-name>/`** and move the captured
-   frames into it.
+6. **Create that folder** and move the captured frames into it.
 
 7. **Write `analysis.md`** inside that folder: title, source URL/path,
    channel/source and publish date if known, then the complete analysis
