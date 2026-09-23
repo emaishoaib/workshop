@@ -30,6 +30,10 @@ For each commit, you only apply the changes and suggest a commit message.
 I review the code, we discuss it if needed, and then I do the committing.
 Start the next commit only after I have committed this one.
 
+Commit messages you suggest are all lowercase, with no conventional-commit
+prefix like "feat:" or "fix:". Use plain letters, digits and basic
+punctuation only. Spell out symbols such as ⌥ or ` as words instead.
+
 You NEVER commit yourself. Not when I say "apply it", not when the change is
 tiny, not when you are confident it is right. Staging, committing, amending
 and pushing are always mine.
