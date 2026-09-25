@@ -1013,6 +1013,84 @@ step_docker() {
   step_warn "install Docker (ddb and dmig in db/ need it), then re-run: bash setup.sh"
 }
 
+# <owner/repo> <app> -- installs the newest GitHub release of <app> into
+# /Applications, unless the version there already matches it. The release
+# must carry <app>.zip, and its tag must be the app's version with a leading
+# v. Talks to GitHub with curl rather than gh, because gh refuses to run
+# before `gh auth login`, even for a public repo. A running copy is asked to
+# quit first, so an app with unsaved work gets to prompt about it, and is
+# reopened afterwards. Sets the caller's `release_installed` to 1 when this
+# run put a new version in place (bash functions can see their caller's
+# local variables).
+install_latest_release() {
+  local repo="$1" app="$2"
+  local dest="/Applications/$app.app"
+  local tag latest current tmp was_running=0 i
+
+  step_action "Asking GitHub for $app's latest release"
+  tag="$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" \
+    | plutil -extract tag_name raw -o - -)" || return 1
+  latest="${tag#v}"
+
+  current="$(plutil -extract CFBundleShortVersionString raw -o - "$dest/Contents/Info.plist" 2>/dev/null)"
+  if [ -n "$current" ] && [ "$current" = "$latest" ]; then
+    step_action "Checking $dest: v$current, up to date"
+    step_detail "v$current, up to date"
+    return 0
+  fi
+  if [ ! -d "$dest" ]; then
+    step_action "Checking $dest: not installed"
+  elif [ -z "$current" ]; then
+    step_action "Checking $dest: installed with no version -- replacing it with v$latest"
+  else
+    step_action "Checking $dest: v$current installed, v$latest available"
+  fi
+
+  tmp="$(mktemp -d)"
+  step_action "Downloading $app.zip from the $tag release"
+  if ! curl -fsSL -o "$tmp/$app.zip" "https://github.com/$repo/releases/download/$tag/$app.zip" \
+    || ! ditto -x -k "$tmp/$app.zip" "$tmp"; then
+    rm -rf "$tmp"
+    return 1
+  fi
+
+  if pgrep -xq "$app"; then
+    was_running=1
+    step_action "Asking $app to quit"
+    osascript -e "quit app \"$app\""
+    for ((i = 0; i < 10; i++)); do
+      pgrep -xq "$app" || break
+      sleep 1
+    done
+    if pgrep -xq "$app"; then
+      rm -rf "$tmp"
+      step_action "Checking whether $app quit: still running -- leaving v${current:-?} in place"
+      step_detail "v$latest available, not installed -- $app is still open"
+      step_warn "quit $app, then re-run: bash setup.sh"
+      return 0
+    fi
+  fi
+
+  step_action "Replacing $dest with v$latest"
+  if ! { rm -rf "$dest" && mv "$tmp/$app.app" "$dest"; }; then
+    rm -rf "$tmp"
+    return 1
+  fi
+  rm -rf "$tmp"
+  release_installed=1
+
+  if [ "$was_running" -eq 1 ]; then
+    step_action "Reopening $app"
+    open "$dest"
+  fi
+
+  if [ -n "$current" ]; then
+    step_detail "v$latest (just updated from v$current)"
+  else
+    step_detail "v$latest (just installed)"
+  fi
+}
+
 # --- Run ---
 
 echo "${C_DIM}── workshop setup ─────────────────────────────────────${C_RESET}"
