@@ -1146,12 +1146,12 @@ run_step "Shell integration"  step_zshrc
 run_step "Global gitignore"   step_gitignore
 run_step "Hammerspoon"        step_hammerspoon
 run_step "BetterMouse"        step_bettermouse
-run_step "Hop"                step_hop
-run_step "Quire"              step_quire
 run_step "Claude"             step_claude
 run_step "VS Code"            step_vscode
 run_step "Chrome: keepa-lookup" step_chrome_keepa_lookup
 run_step "Docker"             step_docker
+run_step "Hop"                step_hop
+run_step "Quire"              step_quire
 
 echo ""
 echo "${C_DIM}─────────────────────────────────────────────────────────${C_RESET}"
