@@ -1,6 +1,6 @@
 ---
 name: video-archive
-description: Process a video (YouTube URL or local file) into a self-contained folder containing a dense, uniform capture of frames across the entire video plus one markdown file with the complete analysis (frames embedded inline at the point they're discussed). A YouTube video's folder goes under video-analysis/; a local file's folder goes right beside the file, named after it. Keeps a running index.md in video-analysis/ of every video archived so far. Use when the user gives a video URL/path and asks to process, archive, or "watch" it, or invokes this skill by name.
+description: Process a video (YouTube URL or local file) into a self-contained folder containing a dense, uniform capture of frames across the entire video plus one markdown file with the complete analysis (frames embedded inline at the point they're discussed). A YouTube video's folder goes under a category folder inside video-analysis/, confirmed with the user; a local file's folder goes right beside the file, named after it. Use when the user gives a video URL/path and asks to process, archive, or "watch" it, or invokes this skill by name.
 ---
 
 # Video Archive
@@ -27,22 +27,30 @@ than guessing at a substitute.
 
 Where the per-video folder goes depends on the source.
 
-**YouTube:** under a shared `video-analysis/` folder.
+**YouTube:** under a category folder inside a shared `video-analysis/`
+folder.
 
 ```
 video-analysis/
-  index.md
-  <slugified-title>--<video-id>/
-    analysis.md
-    frame_00-00-01.jpg
-    frame_00-00-02.jpg
-    frame_00-00-03.jpg
-    ... (one per second of video, by default)
+  games/
+    blood-of-dawnwalker/
+      early-game/
+        <slugified-title>--<video-id>/
+          analysis.md
+          frame_00-00-01.jpg
+          frame_00-00-02.jpg
+          frame_00-00-03.jpg
+          ... (one per second of video, by default)
+  tech/
+    <slugified-title>--<video-id>/
+      ...
 ```
 
-Flat — no category/grouping layer under `video-analysis/`. The folder is
-the slug of the title plus the 11-character video ID from the URL (the
-part that's actually unique — titles collide, IDs don't).
+Every video sits inside a category, and categories can nest as deep as
+the subject needs. See "Categories" below for how one gets chosen. The
+video's own folder is the slug of the title plus the 11-character video
+ID from the URL (the part that's actually unique — titles collide, IDs
+don't).
 
 **Local file:** beside the video itself, in a folder named with the
 video's exact filename minus its extension.
@@ -60,87 +68,91 @@ video's exact filename minus its extension.
 Keep the name exactly as the file has it: same spaces, capitals and
 unusual characters. Don't slugify it and don't add a hash. The folder
 sits next to the file it came from, so the pairing is obvious on sight.
+Categories don't apply to local files.
 
 `video-analysis/` itself lives next to wherever this project already keeps
 notes (look for an existing notes-like directory first); with no such
 convention, default to `video-analysis/` at the project root. Inferred,
-never asked. It holds `index.md` for both kinds of source.
+never asked.
 
 Frame filenames are just `frame_HH-MM-SS.<ext>` — no separate sequence
 number, since the timestamp alone sorts correctly and is what you'd
 actually search by later.
 
-## index.md
+## Categories
 
-`video-analysis/index.md` is the browsable overview of everything archived
-— since there's no category structure to browse by, this is what makes the
-flat layout navigable. Every time a new video folder is created, add a row;
-every time an existing one is reprocessed, update its row in place rather
-than duplicating it.
+The category folders are what make `video-analysis/` browsable, so every
+YouTube video goes into one. There is no index file.
 
-One row per video, minimal — nothing that's already in that video's own
-`analysis.md` (skip the full URL, skip anything requiring `analysis.md` to
-answer). Per row:
+The category is always the user's call, never inferred silently. Once you
+know what the video is about, list the category folders already under
+`video-analysis/` (every level, not just the top) and propose one of:
 
-- **Video** — a link to the folder's `analysis.md`, labeled with the title.
-  For a local file this is a relative path out to the folder beside the
-  video. Wrap it in angle brackets, e.g. `[Title](<../../My Recording/analysis.md>)`,
-  because these paths usually contain spaces.
-- **Date** — the video's own publish/upload date if the source provides one
-  (YouTube does); otherwise the date it was archived. Say which one it is
-  if it's not obvious from context.
-- **Summary** — one to three lines on what the video is actually about,
-  written for someone scanning the index to decide whether to open it.
+- **An existing category**, naming its full path, e.g.
+  `games/blood-of-dawnwalker/gear/`.
+- **A new category**, naming the full path it would have, either at the
+  top level or nested under an existing one.
 
-Create `index.md` with a header row the first time it doesn't exist yet.
-Don't invent columns beyond this without a reason — the point is a fast
-scan, not a second copy of the analysis.
+Say in a sentence why it fits. Then wait for the user to confirm or pick
+something else before creating any folder. When a new category is
+confirmed, create it as part of creating the video's folder.
+
+Category names are short, lowercase and hyphenated, like the rest of the
+tree.
 
 ## Process
 
 1. **Check for a duplicate before doing any real work.** Do this before
    calling any processing tool.
-   - YouTube: take the 11-character video ID from the URL. Search
-     `video-analysis/*` for a folder already ending in `--<that-id>`.
+   - YouTube: take the 11-character video ID from the URL. Search all of
+     `video-analysis/`, at every depth, for a folder already ending in
+     `--<that-id>`. Videos sit inside category folders, so a top-level
+     search misses them.
    - Local file: check whether a folder with the file's name minus its
      extension already exists beside the file.
    - **Found:** stop. Tell the user this video was already archived, give
      them the existing path, and ask whether they want to reprocess
      (overwrite) or leave it as-is. Don't burn a `video_analyze`/`video_watch`
      call — those cost real processing time and, on cloud backends, real
-     API usage — until they say reprocess. If they do, you'll update that
-     video's `index.md` row in place rather than adding a new one.
+     API usage — until they say reprocess. If they do, overwrite it in its
+     existing category folder and skip step 3.
    - **Not found:** continue to step 2.
 
 2. **Understand the video.** Call `video_analyze` for structure (scene
    changes, silence, rough transcript), then `video_watch` for a
    timestamped transcript. This pass is about understanding content and
    getting the duration/publish date — it doesn't need to extract many
-   frames itself, dense capture happens separately in step 4.
+   frames itself, dense capture happens separately in step 5.
 
-3. **Identify sections.** From the transcript, break the video into
+3. **Agree on a category** (YouTube only). Propose an existing or new
+   category per "Categories" above, and wait for the user's confirmation
+   before going further.
+
+4. **Identify sections.** From the transcript, break the video into
    whatever structure it actually has (steps, topics, chapters, key
    moments) with an approximate timestamp for each. Let the content decide
    the count and the labels — don't force a fixed shape. This is for
    organizing `analysis.md` later — it has no effect on which frames get
    captured.
 
-4. **Capture frames for the entire video at 1 frame per second**,
+5. **Capture frames for the entire video at 1 frame per second**,
    regardless of section boundaries. See "Frame extraction mechanics"
    below for exactly how — the short version: turn on session caching,
    extract in one or more segments covering the full duration, then pull
    the cached files off disk with a plain filesystem copy rather than
    routing them through the conversation.
 
-5. **Work out the per-video folder path** using the rules in "Directory
-   layout". For YouTube, add the slugified title to the ID from step 1.
-   For a local file, you already have the path from step 1.
+6. **Work out the per-video folder path** using the rules in "Directory
+   layout". For YouTube, put the slugified title plus the ID from step 1
+   inside the category confirmed in step 3. For a local file, you already
+   have the path from step 1.
 
-6. **Create that folder** and move the captured frames into it.
+7. **Create that folder**, and any new category folders above it, then
+   move the captured frames into it.
 
-7. **Write `analysis.md`** inside that folder: title, source URL/path,
+8. **Write `analysis.md`** inside that folder: title, source URL/path,
    channel/source and publish date if known, then the complete analysis
-   organized by the sections from step 3 — each with its timestamp, each
+   organized by the sections from step 4 — each with its timestamp, each
    embedding the frame(s) nearest that timestamp inline via a relative
    markdown image link (`![](./frame_00-04-12.jpg)`) right where that
    section is discussed. One self-contained file. Because capture was
@@ -148,11 +160,8 @@ scan, not a second copy of the analysis.
    moment worth illustrating — no more guessing which single moment to
    extract.
 
-8. **Add or update this video's row in `video-analysis/index.md`** per the
-   format above.
-
-9. **Report back**: the full path created, how many frames were captured,
-   and confirmation the index was updated.
+9. **Report back**: the full path created and how many frames were
+   captured.
 
 ## Frame extraction mechanics
 
