@@ -231,12 +231,28 @@ greset() {
 # (no args): fuzzy-pick a commit from history and reset to it (default mode)
 # mixed:     fuzzy-pick a commit and reset to it with --mixed
 # hard:      fuzzy-pick a commit and reset to it with --hard
+# discard:   show all uncommitted changes, confirm, then drop them (staged, unstaged
+#            and untracked files; ignored files are kept)
 # other args: git reset passthrough
 gres() {
   local mode=""
   case "$1" in
     mixed) mode="--mixed"; shift ;;
     hard)  mode="--hard"; shift ;;
+    discard)
+      if [ -z "$(git status --porcelain)" ]; then
+        echo "gres discard: nothing to discard."
+        return
+      fi
+      git status --short
+      read "answer?Discard all of this? [y/N] "
+      if [[ "$answer" != [yY] ]]; then
+        echo "gres discard: aborted."
+        return 1
+      fi
+      git reset --hard HEAD
+      git clean -fd
+      return ;;
     "") ;;
     *) git reset "$@"; return ;;
   esac
@@ -329,6 +345,7 @@ ghelp() {
   echo "  gres                     fuzzy-pick a commit and git reset to it (default mode)"
   echo "  gres mixed               fuzzy-pick a commit and git reset --mixed to it"
   echo "  gres hard                fuzzy-pick a commit and git reset --hard to it"
+  echo "  gres discard             confirm, then drop all uncommitted changes (staged, unstaged, untracked)"
   echo "  gsmod                    git submodule"
   echo "  gsmod reset              sync all submodules to the commit pinned by the parent repo"
   echo "  greset                   remove stale git locks (index.lock, refs/stash.lock) with upward search fallback"

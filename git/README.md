@@ -35,6 +35,7 @@ brew install gh && gh auth login
 | `gres` | Fuzzy-pick a commit and `git reset` to it (default mode) — other args pass through directly |
 | `gres mixed` | Fuzzy-pick a commit and `git reset --mixed` to it |
 | `gres hard` | Fuzzy-pick a commit and `git reset --hard` to it |
+| `gres discard` | Show all uncommitted changes, confirm, then drop them (`git reset --hard HEAD` + `git clean -fd`) — staged, unstaged and untracked files go; ignored files are kept |
 | `gsmod` | `git submodule` — passes all arguments through directly |
 | `gsmod reset` | Sync all submodules to the commit pinned by the parent repo (`git submodule update --init`) — fixes the "S" (submodule with new commits) indicator in VS Code |
 | `grbe` | `git rebase` — passes all arguments through directly |
