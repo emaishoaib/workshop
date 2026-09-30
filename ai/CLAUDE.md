@@ -34,6 +34,10 @@ Commit messages you suggest are all lowercase, with no conventional-commit
 prefix like "feat:" or "fix:". Use plain letters, digits and basic
 punctuation only. Spell out symbols such as ⌥ or ` as words instead.
 
+Always suggest two versions of each commit message, each in its own code
+block. The first is the plain message. The second is the same message plus
+a blank line and the Claude co-author trailer.
+
 You NEVER commit yourself. Not when I say "apply it", not when the change is
 tiny, not when you are confident it is right. Staging, committing, amending
 and pushing are always mine.
