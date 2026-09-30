@@ -2,3 +2,5 @@ db/local.zsh
 ai/local.env
 ai/settings.local.json
 .DS_Store
+ai/skills/create-jira-ticket/
+ai/skills/create-my-pr/
