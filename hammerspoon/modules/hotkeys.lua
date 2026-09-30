@@ -18,7 +18,7 @@ local function sendInstantKeystroke(mods, key)
     up:post()
 end
 
-local sectionKeyInterceptor = eventtap.new({eventTypes.keyDown}, function(event)
+_G.__SectionKeyInterceptor = eventtap.new({eventTypes.keyDown}, function(event)
     if event:getKeyCode() ~= SECTION_KEYCODE then return false end
 
     local mods = event:getFlags()
@@ -37,7 +37,7 @@ local sectionKeyInterceptor = eventtap.new({eventTypes.keyDown}, function(event)
     return false
 end)
 
-sectionKeyInterceptor:start()
+_G.__SectionKeyInterceptor:start()
 
 -- Lock screen
 hs.hotkey.bind({"ctrl"}, "L", function()
