@@ -102,7 +102,7 @@ if not st.watcher then
 end
 
 -- Auto-resize Finder window on focus
-local finderSizeWatcher = hs.application.watcher.new(function(appName, eventType, app)
+_G.__FinderSizeWatcher = hs.application.watcher.new(function(appName, eventType, app)
     if eventType == hs.application.watcher.activated and appName == "Finder" then
         hs.timer.doAfter(0.1, function()
             local win = hs.window.frontmostWindow()
@@ -112,4 +112,4 @@ local finderSizeWatcher = hs.application.watcher.new(function(appName, eventType
         end)
     end
 end)
-finderSizeWatcher:start()
+_G.__FinderSizeWatcher:start()
