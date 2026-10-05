@@ -11,17 +11,18 @@ analysis that embeds the relevant ones inline — so a future conversation
 with just that folder can answer visual follow-up questions using actual
 frames from the video, without re-touching the video itself.
 
-Frame capture is uniform across the whole timeline at a fixed rate,
-**independent of whatever sections/topics the video breaks into**. Never
+Frame capture is uniform across the whole timeline, at a rate set by the
+video's length, **independent of whatever sections/topics the video breaks into**. Never
 narrow capture down to "one representative frame per topic" — that turns
 every extraction into a guess about which single moment matters, and a bad
 guess is silently unrecoverable. Capture broadly first; sections only
 decide what gets *written about* in the analysis, never what gets
 *captured*.
 
-Relies on the `claude-video-vision` MCP tools (`video_analyze`, `video_watch`,
-`video_detail`, `video_configure`). If these aren't available, say so rather
-than guessing at a substitute.
+Relies on the `claude-video-vision` MCP tools (`video_analyze`,
+`video_watch`) for understanding the video, and on `ffmpeg` for capturing
+frames. If either isn't available, say so rather than guessing at a
+substitute.
 
 ## Directory layout
 
@@ -37,10 +38,10 @@ video-analysis/
       early-game/
         <slugified-title>--<video-id>/
           analysis.md
-          frame_00-00-01.jpg
-          frame_00-00-02.jpg
-          frame_00-00-03.jpg
-          ... (one per second of video, by default)
+          frame_00-00-00-000.jpg
+          frame_00-00-00-250.jpg
+          frame_00-00-00-500.jpg
+          ... (rate set by the video's length)
   tech/
     <slugified-title>--<video-id>/
       ...
@@ -60,9 +61,9 @@ video's exact filename minus its extension.
   My Recording.mov
   My Recording/
     analysis.md
-    frame_00-00-01.jpg
-    frame_00-00-02.jpg
-    ... (one per second of video, by default)
+    frame_00-00-00-000.jpg
+    frame_00-00-00-250.jpg
+    ... (rate set by the video's length)
 ```
 
 Keep the name exactly as the file has it: same spaces, capitals and
@@ -75,9 +76,11 @@ notes (look for an existing notes-like directory first); with no such
 convention, default to `video-analysis/` at the project root. Inferred,
 never asked.
 
-Frame filenames are just `frame_HH-MM-SS.<ext>` — no separate sequence
-number, since the timestamp alone sorts correctly and is what you'd
-actually search by later.
+Frame filenames are just `frame_HH-MM-SS-mmm.jpg`, where `mmm` is
+milliseconds. There's no separate sequence number, since the timestamp
+alone sorts correctly and is what you'd actually search by later. The
+milliseconds are always present, even at 1 frame per second, so every
+archive uses the same pattern.
 
 ## Categories
 
@@ -135,12 +138,11 @@ tree.
    organizing `analysis.md` later — it has no effect on which frames get
    captured.
 
-5. **Capture frames for the entire video at 1 frame per second**,
-   regardless of section boundaries. See "Frame extraction mechanics"
-   below for exactly how — the short version: turn on session caching,
-   extract in one or more segments covering the full duration, then pull
-   the cached files off disk with a plain filesystem copy rather than
-   routing them through the conversation.
+5. **Capture frames for the entire video**, regardless of section
+   boundaries, at the rate its length calls for. See "Frame extraction
+   mechanics" below for exactly how. The short version: pick the rate,
+   run ffmpeg once over the whole video, then rename each frame to its
+   exact time.
 
 6. **Work out the per-video folder path** using the rules in "Directory
    layout". For YouTube, put the slugified title plus the ID from step 1
@@ -154,7 +156,7 @@ tree.
    channel/source and publish date if known, then the complete analysis
    organized by the sections from step 4 — each with its timestamp, each
    embedding the frame(s) nearest that timestamp inline via a relative
-   markdown image link (`![](./frame_00-04-12.jpg)`) right where that
+   markdown image link (`![](./frame_00-04-12-250.jpg)`) right where that
    section is discussed. One self-contained file. Because capture was
    dense and uniform, there's always a real frame within a second of any
    moment worth illustrating — no more guessing which single moment to
@@ -165,45 +167,58 @@ tree.
 
 ## Frame extraction mechanics
 
-This is the part that's easy to get wrong, so follow it exactly:
+Frames are captured with ffmpeg directly, not through the plugin. The
+plugin rounds timestamps down to whole seconds and keeps one frame per
+second in its cache. Any higher rate gets silently thrown away there. Use
+the plugin only for understanding the video (step 2).
 
-- `video_detail`'s extraction (`segments` param) is capped at **1000
-  frames per segment** — a hardcoded limit inside the tool, unrelated to
-  the plugin's `max_frames` config setting (that setting only affects
-  `video_watch`'s own internal auto-fps behavior, not `video_detail`).
-  At 1fps, a segment can cover just under 16m40s. For anything longer,
-  split the full duration into multiple segments of ≤1000s each, all
-  passed in the *same* `video_detail` call's `segments` array — no need
-  for multiple separate tool calls.
-- Extracted frames only persist on disk if session caching is on. Check
-  the current config first by calling `video_configure` with no
-  arguments — it returns the full current config without changing
-  anything. Note the current `enable_index` value so you can restore it
-  later. If it's `false`, call `video_configure` with `enable_index: true`
-  before extracting.
-- Frame resolution: set `resolution: 1920` on each segment for 1080p
-  output. The tool's `resolution` field is the frame **width** in pixels
-  (it maintains aspect ratio from there), not a direct "1080" designation
-  — for standard 16:9 video, a width of 1920 is what actually yields 1080
-  vertical pixels. Don't pass `1080` itself as the resolution value; that
-  would give a *smaller* frame (1080 wide, ~608 tall), the opposite of
-  what's wanted. The tool's max is 2048, so 1920 fits with room to spare.
-  Leaving `resolution` unset defaults to 512, far below what's wanted here.
-- Call `video_detail` with your full-duration segment(s) at `fps: 1`, and
-  set `view_sample: 1` (not `view` with a real timestamp, not leaving
-  `view`/`view_sample` unset) — this forces the tool to actually write
-  every extracted frame to its session cache, while sending back only one
-  image in the response instead of flooding this conversation with
-  hundreds of frames as tokens.
-- The tool's text response includes the session manifest, which names the
-  video's hash. The cached frames live at:
-  `~/.claude-video-vision/sessions/<hash>/frames/<format>/<resolution>/<HH-MM-SS>.<ext>`
-  Use `Bash` to copy every file from that directory into your working
-  location, renaming to `frame_<timestamp>.<ext>` (drop nothing — this is
-  the actual archive).
-- Once copied, restore `enable_index` to whatever value it had before you
-  started, via `video_configure` — don't leave a global plugin setting
-  changed as a side effect of running this skill.
+**Pick the rate from the video's length:**
+
+| Video length   | Frame rate   |
+|----------------|--------------|
+| Under 1 minute | 4 per second |
+| 1 to 3 minutes | 2 per second |
+| Over 3 minutes | 1 per second |
+
+State the chosen rate and the expected frame count before capturing. If
+the user asks for a different rate, use theirs.
+
+**Capture straight into the per-video folder:**
+
+```bash
+ffmpeg -hide_banner -loglevel error -i "$VIDEO" -vf "fps=$FPS,scale='min(1920,iw)':-2" -q:v 2 "$OUT/raw_%05d.jpg"
+```
+
+- `fps=$FPS` samples evenly across the whole video, starting at 0
+  seconds.
+- `scale='min(1920,iw)':-2` gives 1080p output for standard 16:9 video
+  and never upscales a smaller source. The `-2` keeps the aspect ratio
+  and makes the height an even number.
+- `-q:v 2` is near-lossless JPEG quality.
+
+There's no frame cap and no need to split the video into segments.
+ffmpeg handles any length in one pass.
+
+**Rename each frame to its exact time.** Frame *n* (counting from 0) sits
+at *n* ÷ FPS seconds. The names include milliseconds at every rate, so
+every archive uses the same pattern:
+
+```bash
+cd "$OUT"
+n=0
+for f in raw_*.jpg; do
+  ms=$(( n * 1000 / FPS ))
+  name=$(printf 'frame_%02d-%02d-%02d-%03d.jpg' $((ms/3600000)) $((ms/60000%60)) $((ms/1000%60)) $((ms%1000)))
+  mv "$f" "$name"
+  n=$((n+1))
+done
+```
+
+**Check the count.** The number of `frame_*.jpg` files should be close to
+duration × FPS. If it's far off, say so rather than carrying on.
+
+The plugin's config is never touched. There's no `enable_index` to switch
+on and restore, and no cache folder to copy from.
 
 ## Notes
 
@@ -215,6 +230,7 @@ This is the part that's easy to get wrong, so follow it exactly:
 - Never invent a timestamp, frame, or caption you didn't actually get from
   a tool call. If a section has nothing visual worth pointing at, leave it
   without an image in `analysis.md` rather than faking one.
-- 1 frame/second is the default density — if a video is unusually long
-  (multi-hour) and that would mean thousands of files, say so before
-  proceeding rather than silently capturing at a different rate.
+- The rate comes from the table in "Frame extraction mechanics". If a
+  video is unusually long (multi-hour) and even 1 frame per second would
+  mean thousands of files, say so before proceeding rather than silently
+  capturing at a lower rate.
