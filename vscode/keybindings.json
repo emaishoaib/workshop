@@ -9,5 +9,7 @@
   { "key": "cmd+8", "command": "workbench.action.terminal.focusAtIndex8", "when": "terminalFocus" },
   { "key": "cmd+9", "command": "workbench.action.terminal.focusAtIndex9", "when": "terminalFocus" },
   { "key": "alt+c", "command": "toggleFindCaseSensitive", "when": "findInputFocussed" },
-  { "key": "alt+w", "command": "toggleFindWholeWord", "when": "findInputFocussed" }
+  { "key": "alt+w", "command": "toggleFindWholeWord", "when": "findInputFocussed" },
+  { "key": "alt+c", "command": "toggleSearchCaseSensitive", "when": "searchViewletFocus" },
+  { "key": "alt+w", "command": "toggleSearchWholeWord", "when": "searchViewletFocus" }
 ]
