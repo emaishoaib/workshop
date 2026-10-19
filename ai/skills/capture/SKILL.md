@@ -1,296 +1,136 @@
 ---
 name: capture
-description: "Multi-step knowledge logging workflow. Triggered when the user says 'capture'. Extracts highlights from the conversation, routes each one to the appropriate notes file by type, reviews each entry for approval, then writes them. Different files use different formats — Q&A for general knowledge and runbook entries, narrative prose for stories, short dated prose for team conventions."
+description: "Multi-step knowledge logging workflow. Triggered when the user says 'capture'. Extracts highlights from the conversation, routes each one to the topic file in ~/docs/notes it belongs to, reviews each entry for approval, then merges it into that file. Work knowledge goes into topic-based reference files as prose; general programming knowledge goes to software_engineering.md as Q&A; behavioral moments go to behavioral.md."
 ---
 
 # Capture Skill
 
-A multi-step knowledge logging workflow triggered by the word `capture` in conversation. Entries are written in different formats depending on their destination — Q&A for general knowledge and runbook entries, narrative prose for stories, short dated prose for team conventions.
+A multi-step knowledge logging workflow triggered by the word `capture` in conversation. Knowledge is merged into a small set of topic-based reference files in `~/docs/notes/`. Each file covers one business concept, workflow, service or engineering area. `README.md` in that folder lists them.
 
-This applies the same way regardless of where the material comes from — a live technical discussion, or pasted/external content (old notes, a batch of Q&As someone wants logged). A source that already looks "finished" is not a shortcut past the review gates in Steps 1–2: draft, present, get approval, then write. Never write first and revise after just because the content arrived pre-formed.
+This applies the same way regardless of where the material comes from: a live technical discussion, or pasted or external content (old notes, a batch of Q&As someone wants logged). A source that already looks "finished" is not a shortcut past the review gates in Steps 1–2. Draft, present, get approval, then write. Never write first and revise after just because the content arrived pre-formed.
 
-## On question quality
+## The destination files
 
-Q&A framing applies to entries going to `software_engineering.md`, `work_business.md`, and `work_runbook.md`. For these, two types of questions, in order of preference:
+Before routing anything, read `~/docs/notes/README.md` and the headings of the candidate files. The folder holds:
 
-- **Reasoning questions** — test whether you understand *why*. Frame these to
-  reflect how the understanding was actually reached in the conversation,
-  modelled on the real exchange. "Why does X behave this way?" is better than
-  "What is X?".
-- **Recall questions** — test whether you remember something concrete. Fine for
-  commands, flags, syntax. "What flag do you use to X?" is a valid recall
-  question. Recall questions apply to `software_engineering.md` and
-  `work_runbook.md` only — `work_business.md` entries are always reasoning
-  questions.
+| File | Owns |
+|---|---|
+| `business_overview.md` | The company, brands, markets, sites, teams and people, who decides what, how WHT works (sprints, rota, Jira, code chill) |
+| `glossary.md` | Terms, acronyms, aliases. One line each, pointing to the owning file |
+| `order_to_delivery.md` | The chain of dates from order to delivery, billing and locking, release deadlines, order and dispatch calendars, Admin delivery states |
+| `subscriptions.md` | Subs vs gifting, the actuals pipeline, the Papyrus load balancer (business role), ordering to forecast, subs-to-forecast |
+| `forecasting_and_buying.md` | Forecasts, buying dues (business view), BMS stem ordering, intake, MOQ/EOQ, up/down, B2B extras |
+| `production_planning.md` | How COP plans production: rules as practised, product groups and BAS, capacity, smoothing (concept), stock objects |
+| `diversions_and_peaks.md` | Peak calendar, diversions, the four system changes, worked examples |
+| `products_and_packaging.md` | Product identifiers, BAS meaning, wrap vs craft, cart allocation, box sizes (concept), greeting cards, combinability |
+| `warehouse_floor.md` | Production runs, carts, scans, cold store, packing, print room, freshness, inventory vs stock |
+| `systems_map.md` | Every system and how they connect, Airflow DAGs and the data hub, and the smaller services (Admin, BMS, Mosaic, pcode, Abacus, Cardshark, ...) |
+| `papyrus.md`, `pandora.md`, `spidercode.md` | Each service in depth |
+| `coding_patterns_and_practices.md` | How code is written here, good and bad, git and PR norms, anti-patterns |
+| `infrastructure_and_deployment.md` | GCP, Terraform, IAM, secrets, build and deploy pipeline, environments, disaster recovery |
+| `local_development.md` | Running and testing services on a Mac, troubleshooting local errors |
+| `operations_runbook.md` | Step-by-step procedures against staging and prod |
+| `security.md` | Access control, IAM hygiene, Wiz, GitHub protection, dependency security |
+| `software_engineering.md` | General programming knowledge that is not specific to work, as Q&A |
+| `behavioral.md` | Behavioral moments mapped to Amazon Leadership Principles |
 
-Prefer reasoning questions. When a reasoning question exists, don't also write
-a recall question for the same concept — the reasoning answer will contain the
-concrete detail anyway.
-
-A single concept may produce multiple Q&A pairs. When it does, order them
-deliberately — start with the question that establishes *why* or *what problem
-this solves*, then move to deeper reasoning, then to concrete application. The
-sequence should mirror how someone would build understanding from scratch, not
-the order things happened to come up in conversation.
-
-### The amnesia test — apply at draft time, not at write time
-
-Every question must pass this test before it is presented in Step 1:
-
-> Could someone who has never seen this conversation, this codebase, or this
-> system understand what the question is asking?
-
-This means the question must name the concept, library, system, or tool
-explicitly — never assume it from context. Questions that reference "this
-function", "our approach", "the backend", or any pronoun that only makes sense
-inside the conversation fail immediately.
-
-**Fails:**
-- "Why does `merge_window` handle the case where the cache is cold?"
-- "What happens when the counter hits zero in our loop?"
-- "Why did we move validation to the server?"
-
-**Passes:**
-- "A read-through cache fills itself on a miss — why can many requests for the
-  same cold key at once overload the database, and how does coalescing those
-  requests into one prevent it?"
-- "A retry loop checks `if attempts > 0` before each call — what happens when
-  `attempts` starts at `0`, and why does the loop silently skip the call
-  rather than raising?"
-- "You validate form input in the browser — why must the same checks run again
-  on the server, even though the browser already enforces them?"
-
-Where possible, frame the question as a problem statement the reader would
-actually face — "You have X, you want Y, how?" — rather than a declarative
-"Why does Z work this way?". If the concept is code-centric, include a short
-illustrative snippet in the question itself.
-
-## On answer quality
-
-Good answers share three properties regardless of destination:
-
-**Full paragraphs, not one-liners.** An answer that fits in one sentence
-probably hasn't captured the *why*. Write enough to make the concept
-self-contained.
-
-**Concrete examples.** Numbers, names, specific scenarios make answers
-memorable and verifiable. If concrete examples came up in conversation, use
-them.
-
-**Build from the ground up.** Don't assume the reader holds context from
-surrounding entries or the conversation. Each Q&A should stand alone — someone
-reading it cold should finish understanding the concept.
+If a topic file starts to cover something none of these own, propose a new topic file in Step 1 and wait for approval. Do not create one silently.
 
 ## Step 1 — Extract highlights and route
 
-Scan the full conversation chronologically from the beginning, not from the
-end. Recency bias is a common failure mode — earlier decisions often carry more
-knowledge density than later iterative work. A long sequence of small iterative
-changes (e.g. "make it wider", "apply", "a bit more") should carry far less
-weight than a single message where an architectural or technical decision was
-made and reasoned through.
+Scan the full conversation chronologically from the beginning, not from the end. Recency bias is a common failure mode. Earlier decisions often carry more knowledge density than later iterative work. A long sequence of small iterative changes ("make it wider", "apply", "a bit more") should carry far less weight than one message where an architectural or technical decision was made and reasoned through.
 
-For each of the following categories, ask: did anything meaningful happen here?
-
+For each of these categories, ask whether anything meaningful happened:
 - Architectural and design decisions
-- Debugging, errors, and fixes
+- Debugging, errors and fixes
 - Tool and library configuration gotchas
 - CLI and command patterns
 - Workflow and process patterns
-- Layout and UI patterns
 - Technical concepts introduced or clarified
 - Business and domain concepts introduced or clarified
+- Incidents and pieces of work worth remembering
 
-Identify key things learned, decided, clarified, or discovered across all of
-these. Don't summarise the task itself; focus on reusable knowledge.
+Identify the reusable knowledge: things learned, decided, clarified or discovered. Don't summarise the task itself.
 
-For each highlight, immediately assign it a destination using this routing logic:
+Route each highlight with these rules:
 
-**`work_stories.md`** — A specific piece of work happened: a migration, an
-incident, a feature build, a discovery during a PR. The value is the narrative
-of what was done, what was found, what went wrong, how it was resolved. It is
-time-bounded and tied to specific events or PRs. Ask: "Is this about a specific
-thing that happened?" If yes → `work_stories.md`.
+- **Work knowledge** goes to the topic file that owns the topic. Pick the target section inside it too. When two files touch a topic, the owner gets the full fact and the other gets at most a sentence and a link. The ownership table above decides.
+- **A team convention or coding pattern**, good or bad, goes to `coding_patterns_and_practices.md`. A convention that only applies to one service goes to that service's file, in its conventions or codebase section.
+- **A procedure** goes to `operations_runbook.md` when it runs against staging or prod. It goes to `local_development.md` when it runs on a laptop.
+- **Troubleshooting** goes to the troubleshooting section of the same file the procedure would go to.
+- **A specific piece of work or incident** becomes an entry in the `## History and incidents` section of the topic file it is about. There is no separate stories file. The entry carries the lesson. If it changes how something works, update the reference text above it too.
+- **General programming knowledge** that would apply equally at another company goes to `software_engineering.md`.
+- **A new term** gets a one-line entry in `glossary.md` pointing to the owning file. Add it alongside the main entry.
 
-**`work_systems_and_patterns.md`** — A convention or practice used in the team at
-work that is specific to the team or a repo, and may differ from general best
-practice. Ask: "Is this 'what we do in the team' that an engineer joining the team
-needs to know?" If yes → `work_systems_and_patterns.md`. Team conventions
-go at the top of the file; repo-specific ones go under the `# repo-name`
-section.
+### Check against existing content before presenting
 
-**`work_runbook.md`** — A procedure. "Is this a step-by-step thing someone
-would follow?" → `## How-to` section. "Is this about diagnosing or fixing
-something broken?" → `## Troubleshooting` section. Security-specific guidance
-→ `## Security` section.
+Before a drafted entry goes into the list, open the target section and check what it already says. Re-capturing a fact already in the file is the likely failure mode, not the exception.
 
-**`software_engineering.md`** — General technical knowledge that is not specific
-to work. Would this knowledge apply equally at another company or team?
-If yes → `software_engineering.md`.
+- **Already there:** drop the draft, or fold any genuinely new detail into the existing text.
+- **Overlapping:** propose an edit to the existing text instead of a second passage, and say so in the list.
+- **Contradicts what's there** (a number, a name, a claim): do not silently resolve it either way. Show both versions side by side and let me decide. If neither can be confirmed, the contradiction goes under the file's `## Open questions`.
+- **Supersedes what's there** (the design changed): propose replacing the old text. Move the old state into History only if it's worth remembering.
 
-**`work_business.md`** — Work domain knowledge. Business rules,
-product concepts, domain specifics that are not about how the
-systems at work are built but about how the business works.
-
-For highlights going to `software_engineering.md`, `work_business.md`, or
-`work_runbook.md`: draft as a question, applying the amnesia test. For
-highlights going to `work_stories.md`: identify the story and its key moments
-(what it was about, what was done, what was discovered, what went wrong, how it
-was resolved). For highlights going to `work_systems_and_patterns.md`:
-identify the convention (what the team does, in which repos, any nuance worth
-noting).
-
-### Check for existing coverage before presenting
-
-Before a drafted entry goes into the list below, open the destination file and
-check whether this fact — or something close to it — is already there. This
-matters more as these files grow; re-capturing an already-documented fact is
-the likely failure mode, not the exception.
-
-- **Exact or near-duplicate found:** drop the draft, or fold any genuinely new
-  detail into the existing entry instead of writing a second one.
-- **Overlapping but not identical** (same topic, different angle or extra
-  detail): keep both, but note the overlap explicitly when presenting the list
-  — don't let two adjacent entries quietly cover the same ground without
-  saying so.
-- **Contradicts existing content** (a number, a name, a claim that disagrees
-  with what's already written): do not silently resolve it either way. Flag
-  both versions side by side when presenting the list and let me decide which
-  is right, or whether both are correct in different contexts.
-
-Present these as a categorised list — grouped by destination — and wait for
-approval. I may trim, edit, or reroute them. If I request changes, re-present
-the full updated list — not just what changed.
+Present the list grouped by destination file and section, and wait for approval. I may trim, edit or reroute entries. If I request changes, re-present the full updated list, not just what changed.
 
 ## Step 2 — Review entry by entry
 
-Once the highlights are approved, go through each one at a time. For each,
-present:
+Once the highlights are approved, go through them one at a time. For each, present:
+1. **The file and section** it goes into.
+2. **The exact change**: the new or edited text, with a few lines of the surrounding existing text so I can see where it lands. For an edit, show before and after.
 
-1. **The file it maps to** — look at existing markdown files in
-   `~/docs/notes/`.
-2. **The full content** — exactly as it will be written, in the format
-   appropriate for that file (see Step 3).
+Wait for approval on each entry before moving to the next. I may edit the content or the destination. If I request changes, apply them and re-present that entry, not the whole list.
 
-Wait for approval on each entry before moving to the next. I may edit the
-content or the file mapping at this stage. If I request changes, apply them and
-re-present that entry — not the whole list.
-
-Once all entries have been reviewed and approved, summarise the full mapping
-(entry → file) and wait for a final go-ahead before writing anything.
+Once every entry is approved, summarise the full mapping (entry → file → section) and wait for a final go-ahead before writing anything.
 
 ## Step 3 — Write
 
-Write to the files exactly as approved. No surprises.
+Write exactly what was approved. No surprises.
 
-Within each file, find the right section or create one. If knowledge already
-exists, update or extend rather than duplicate.
+### Topic files (everything except software_engineering.md and behavioral.md)
+
+These are reference documents, not logs. Merge new knowledge into the right section as prose that matches the file. Do not append it at the bottom.
+
+- Keep the file's existing structure. Add a `###` subsection only when the section has a genuinely new distinct part.
+- Write in the file's style:
+  - one idea per sentence
+  - lists for parts, tables when items share attributes
+  - concrete names of repos, tables, endpoints, commands and numbers
+  - code blocks for commands
+- Explain a new term the first time, or link `glossary.md`.
+- Mark facts likely to change with "(as of Mon YYYY)".
+- Prefer updating a sentence that went stale to adding a correcting sentence next to it.
+- **History entries** use `### YYYY-MM — short title`. They are chronological, and each covers what happened, the cause and the lesson in 2 to 6 sentences.
+- **Procedures** in the runbook and local-dev files follow the file's layout: when to use it, prerequisites, steps, how to verify, gotchas.
+- **Open questions** state the competing versions plainly.
+- **Links** to external pages (Confluence, Sheets, Jira, PRs) go in the file's `## Links` section.
+- Never copy secrets, tokens, passwords, customer or order IDs, or personal email addresses.
 
 ### `software_engineering.md` — Q&A format, `### heading` style
 
-Use the existing sections and if none is suitable, suggest a new
-section and get approval first before creating it with a new `##`.
+Use the existing sections. If none fits, suggest a new `##` section and get approval before creating it.
 
-Write each entry as a `### Question` heading followed by prose. The answer
-should be a few paragraphs at most, with code snippets where they add clarity.
-Write as a personal reference note, not documentation.
+Write each entry as a `### Question` heading followed by prose. The answer is a few paragraphs at most, with code snippets where they help. Write it as a personal reference note, not documentation. Inline relevant links within the prose.
 
-Apply the amnesia test to every question: it must be fully self-contained —
-name the system, library, command, or concept explicitly. "Why does this fail?"
-fails; "Why does FastAPI silently swallow dependency errors raised as
-HTTPExceptions?" passes.
-
-If any links were shared that are relevant, inline them naturally within the
-prose — not as a separate references section.
-
-### `work_business.md` — Q&A format, `**bold**` style
-
-Use the existing sections and if none is suitable, suggest a new
-section and get approval first before creating it with a new `##`.
-
-Write each entry as a `**bold question**` followed by prose answer — matching
-the existing style in the file.
-
-### `work_runbook.md` — Q&A with date, under the right section
-
-Entries go under `## Troubleshooting` (reactive — diagnosing or fixing
-something broken), `## How-to` (proactive — a step-by-step procedure someone
-follows), or `## Security` (security-specific guidance).
-
-Write each entry as a `### Question` heading, with `*Last confirmed:
-YYYY-MM-DD*` on the line immediately after. If the date isn't clear from
-context, ask before writing anything. This includes migrating from an old,
-undated note or file — today's date is not automatically the right one to use,
-since the fact wasn't necessarily confirmed today. Ask whether to use today's
-date (the migration date), leave it unconfirmed, or flag it as inherited from
-an undated source. The answer can be numbered steps — the Q&A wrapper still
-applies, the answer just happens to be procedural.
-
-### `work_stories.md` — narrative prose
-
-A story captures a specific piece of work: what happened, what was done, what
-was discovered, what went wrong, how it was resolved. It is NOT Q&A — it is a
-narrative.
-
-Structure:
-```
-# Story Title
-
-_YYYY-MM-DD_
-
-## Sub-heading describing this part of the story
-
-Prose...
-
-## Another sub-heading
-
-Prose...
-```
-
-Sub-headings should be descriptive of this specific story, not generic
-templates. Not every angle needs a sub-heading — use whichever naturally apply.
-PRs can be linked inline where relevant. If a story is being added to an
-existing entry, find the right place within it and extend rather than
-duplicate.
-
-### `work_systems_and_patterns.md` — convention entries with date
-
-Each entry records what the team at work actually does: a convention, a practice, a
-configuration requirement. It is NOT Q&A.
-
-Structure:
-```
-**Convention name.** *(scope — DATE)*
-
-Short prose paragraph explaining the convention, why it exists, and any nuance.
-Code block only if it illustrates the convention — not as a how-to step.
-```
-
-Team conventions go at the top of the file. Repo-specific conventions go
-under the `# repo-name` section — create the section if it does not exist.
+Questions must pass the amnesia test: could someone who has never seen this conversation, codebase or system understand what the question asks? Name the concept, library or tool explicitly. "Why does this fail?" fails. "Why does FastAPI silently swallow dependency errors raised as HTTPExceptions?" passes. Prefer reasoning questions ("why does X behave this way") over recall questions. Frame them as a problem the reader would face where possible.
 
 ---
 
-After writing, show added/updated content with a few lines of surrounding
-context above and below — not the full file, just the relevant portion.
+After writing, show the added or updated content with a few lines of surrounding context. Do not show the full file.
 
 ## Step 4 — Behavioral extraction
 
-Scan the conversation for behavioral moments — pushback, disagreement,
-committing to a decision, updating a view, handling conflict, earning trust.
+Scan the conversation for behavioral moments: pushback, disagreement, committing to a decision, updating a view, handling conflict, earning trust.
 
-For each moment found, propose:
-- The Amazon Leadership Principle(s) it maps to
-- A subsection name
-- The date it occurred
-- The company context
-- A draft note with the flavor specific to that principle
+For each moment, propose:
+- the Amazon Leadership Principle(s) it maps to
+- a subsection name
+- the date it occurred
+- the company context
+- a draft note with the flavor specific to that principle
 
-Present the full proposal and wait for approval before writing to
-`~/docs/notes/behavioral.md`.
+Present the full proposal and wait for approval before writing to `~/docs/notes/behavioral.md`.
 
-If no behavioral aspects are present, skip this step silently.
+If no behavioral moments are present, skip this step silently.
 
-You then go over each behavioral moment approved, show the exact text
-that will be written to `behavioral.md` - including surrounding
-context - and wait for explicit approval before writing anything.
+Then go over each approved moment. Show the exact text that will be written to `behavioral.md`, including surrounding context, and wait for explicit approval before writing anything.

@@ -1,3 +1,12 @@
+# Prints the default branch name (e.g. main) from the local origin/HEAD ref.
+# If origin/HEAD isn't set, asks GitHub once and saves the answer, so every later run stays local.
+_git_default_branch() {
+  local ref
+  ref=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null) \
+    || { git remote set-head origin --auto >/dev/null && ref=$(git symbolic-ref --short refs/remotes/origin/HEAD); }
+  echo "${ref#origin/}"
+}
+
 # git branch passthrough; custom subcommands:
 # delete: fuzzy delete local branch; prompts to also delete remote if it exists
 # rename <new-name>: rename current branch locally and remotely
@@ -85,7 +94,7 @@ gcko() {
 gcom() {
   if [ "$1" = "fix" ]; then
     local default_branch
-    default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+    default_branch=$(_git_default_branch)
 
     local sha
     sha=$(git log --oneline --color=always HEAD "^origin/$default_branch" \
@@ -386,7 +395,7 @@ glog() {
 
   else
     local default_branch
-    default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+    default_branch=$(_git_default_branch)
     git log --oneline HEAD "^origin/$default_branch"
   fi
 }
@@ -535,7 +544,7 @@ _grbe_after_continue() {
 
 grbe() {
   local default_branch
-  default_branch=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+  default_branch=$(_git_default_branch)
 
   if [ "$1" = "edit" ]; then
     local shas
