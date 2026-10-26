@@ -53,4 +53,6 @@ Once you have the full raw material, write the document around what happened in 
   - **Open items / not yet done** — anything that came up but wasn't resolved, stated plainly rather than buried in prose.
 - If any content couldn't be retrieved verbatim in Step 1, note it briefly near the top of the document (one or two sentences), then don't let it distort anything else — reconstruct the substance from context and move on.
 
+**Where to save it:** always write the document to `~/docs/notes/session_writeups/`, whatever the current working directory is. Name the file `YYYYMMDD - <short-kebab-case-topic>-writeup.md`, using the date the session's work happened.
+
 **Before delivering:** reread your own draft once specifically hunting for meta-narrative phrasing (see the cut list above). It's very easy to slip back into "was requested" / "the user then..." out of habit even when trying to avoid it — treat this as a required pass, not an optional polish step.
