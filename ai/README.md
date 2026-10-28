@@ -16,7 +16,7 @@ they're skipped when only the desktop app is installed.
   see `.gitignore`. Create it yourself, in the same shape as `settings.json`.
 - **`skills/`** — skills available in every Claude Code session.
 - **[claude-video-vision](https://github.com/jordanrendric/claude-video-vision) MCP server** —
-  used by the `video-archive` skill. `setup.sh` (`video_vision_mcp`)
+  used by the `video-archive` and `video-analyze` skills. `setup.sh` (`video_vision_mcp`)
   pins a specific reviewed npm release (see `VIDEO_VISION_VERSION` near the
   top of that step) and extracts it to `~/.claude-video-vision/vendor/<version>/`
   — outside this repo, not version controlled — then registers
