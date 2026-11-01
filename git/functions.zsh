@@ -118,6 +118,7 @@ gcom() {
 # head:            fuzzy-pick a remote branch to push HEAD to
 # head:<branch>    push HEAD straight to <branch>, no prompt
 # new:             push a newly created local branch to origin and set up tracking (git push -u origin HEAD)
+# commit:          fuzzy-pick an unpushed commit, then push it and everything older to the tracked upstream
 gpush() {
   if [ "$1" = "force" ]; then
     shift
@@ -140,6 +141,35 @@ gpush() {
 
   elif [ "$1" = "new" ]; then
     git push -u origin HEAD
+
+  elif [ "$1" = "commit" ]; then
+    local branch remote merge
+    branch=$(git branch --show-current)
+    remote=$(git config "branch.$branch.remote")
+    merge=$(git config "branch.$branch.merge")
+    if [ -z "$remote" ] || [ -z "$merge" ]; then
+      echo "No upstream for '$branch'. Use gpush new first."
+      return 1
+    fi
+
+    local commits
+    commits=$(git log --oneline --color=always '@{u}..HEAD')
+    if [ -z "$commits" ]; then
+      echo "Nothing to push."
+      return
+    fi
+
+    local sha
+    sha=$(echo "$commits" \
+      | fzf --ansi --no-sort \
+          --preview='git show --stat --color=always --format= {1} 2>/dev/null; echo; git show --color=always {1} 2>/dev/null' \
+          --preview-window=right:60% \
+          --prompt="Push up to > " \
+          --header="Select the newest commit to push" \
+      | awk '{print $1}')
+    [ -z "$sha" ] && return
+
+    git push "$remote" "$sha:$merge"
 
   else
     git push "$@"
@@ -350,6 +380,7 @@ ghelp() {
   echo "  gpush head               fuzzy-pick a remote branch, force-push HEAD to it (--force-with-lease)"
   echo "  gpush head:<branch>      force-push HEAD straight to <branch>, no prompt"
   echo "  gpush new                push a new local branch to origin and set upstream tracking"
+  echo "  gpush commit             fuzzy-pick an unpushed commit, push it and everything older"
   echo "  gmge                     fuzzy-pick a branch and merge it into the current branch"
   echo "  gres                     fuzzy-pick a commit and git reset to it (default mode)"
   echo "  gres mixed               fuzzy-pick a commit and git reset --mixed to it"

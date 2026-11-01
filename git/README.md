@@ -32,6 +32,7 @@ brew install gh && gh auth login
 | `gpush head` | Fuzzy-pick a remote branch, then force-push HEAD to it (`git push origin HEAD:<branch> --force-with-lease`) |
 | `gpush head:<branch>` | Force-push HEAD straight to `<branch>`, no prompt |
 | `gpush new` | Push a newly created local branch to origin and set up tracking (`git push -u origin HEAD`) |
+| `gpush commit` | Fuzzy-pick an unpushed commit, then push it and everything older to the tracked upstream, keeping newer commits local |
 | `gres` | Fuzzy-pick a commit and `git reset` to it (default mode) — other args pass through directly |
 | `gres mixed` | Fuzzy-pick a commit and `git reset --mixed` to it |
 | `gres hard` | Fuzzy-pick a commit and `git reset --hard` to it |
