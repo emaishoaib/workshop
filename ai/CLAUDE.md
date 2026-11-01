@@ -146,3 +146,12 @@ more sentences rather than compressing it into denser ones.
 
 Headings and code blocks are good. Keep using them. Tables are good when
 they compare several items on the same attributes; otherwise use a list.
+
+These apply to everything you write, in replies and in files such as a README:
+
+- **Arrows** -- never use arrow characters, always write a hyphen and an angle
+  bracket instead: `->`
+- **Bold lead-ins** -- when a bullet or numbered item opens in bold, the bold
+  part is a label, not a sentence with a period. End the bold, add two hyphens,
+  and continue with a lowercase letter: `**Sparkle** -- checks for updates`
+- **List endings** -- bullet points and numbered items never end with a period
