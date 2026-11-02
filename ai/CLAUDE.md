@@ -45,7 +45,46 @@ and pushing are always mine.
 ## Writing code
 
 No inline comments. Docstrings are fine: a comment that documents a file,
-type, function or script as a whole, placed right before it.
+type, function or script as a whole, placed right before it. Names must carry
+the meaning.
+
+## Code style by language
+
+Follow the surrounding code first. These apply to new code and when no
+nearby code says otherwise.
+
+### Swift
+
+- **Layout** -- no file headers or `MARK` sections, and most files under 100 lines
+- **Views** -- many small views, each doing one job, kept `private` when only that file uses them
+- **Screens** -- stay thin, and the logic lives in a model
+- **Models** -- `@MainActor @Observable final class`, never `ObservableObject`, with `private(set)` on state only the model changes
+- **State** -- an `enum` with associated values, not separate flags
+- **Grouped constants** -- a caseless `enum`
+- **Concurrency** -- `async`/`await` and `Task`
+- **Control flow** -- `guard` for early exits, one line when it fits, and `switch` and `if` as expressions
+- **Platforms** -- `#if os(...)` right where the difference is, with no shared helper file
+- **Tests** -- Swift Testing, not XCTest, with test names that read as sentences
+- **Spelling** -- British, such as `usesDayColours`
+
+### Python
+
+- **Types** -- annotate parameters, use `X | None` rather than `Optional`, and `Annotated` for FastAPI dependencies
+- **Data** -- `@dataclass` for plain data, `enum.StrEnum` for fixed choices
+- **Names** -- module constants in `UPPER_SNAKE_CASE`, with units in the name, such as `EARTH_RADIUS_METERS`
+- **Functions** -- plain module-level functions, with a class only for a client or a model
+- **Dependencies** -- pass clients in, so tests can swap them, such as `http: httpx.Client | None = None`
+- **Control flow** -- `if x is None` over truthiness, and early `continue` or `return`
+- **Tests** -- plain `test_` functions in pytest, no test classes, with names that read as sentences, and fake HTTP through `httpx.MockTransport`
+
+### Terraform
+
+- **Layout** -- flat files named for what they hold, such as `dns.tf` and `secrets.tf`, with `variables.tf`, `outputs.tf`, `providers.tf` and `versions.tf` kept apart, and no modules
+- **Descriptions** -- every variable and output has one, as a full sentence
+- **Repetition** -- `for_each` and `dynamic` blocks, with names kept in `locals`
+- **Existing infrastructure** -- bring it in through `import` blocks in `imports.tf`
+- **Secrets** -- never in files, only `.example` versions of `tfvars` and backend config
+- **Formatting** -- `terraform fmt` alignment
 
 ## Explaining
 
