@@ -51,7 +51,6 @@ Each directory has its own README with the full detail — this is just the map.
 | [`git/`](git/README.md) | Fzf-powered git functions: branch, rebase, push, PR checkout, and a GitHub/SSH helper (`gtools`) |
 | [`hammerspoon/`](hammerspoon/README.md) | macOS automation — hotkeys, Finder shortcuts, login hooks |
 | [`vscode/`](vscode/README.md) | Synced settings and keybindings, the extension list, and two custom extensions |
-| [`chrome/keepa-lookup/`](chrome/keepa-lookup/README.md) | Chrome extension — one-click jump from an Amazon listing to its Keepa price-history page |
 | [`ai/`](ai/CLAUDE.md) | Global Claude instructions, symlinked to `~/.claude/CLAUDE.md` so changes stay version-controlled |
 | [`macos/bettermouse/`](macos/bettermouse/README.md) | Version-controlled BetterMouse config export — currently also carries the screenshot/recording shortcuts Hammerspoon can't handle right now |
 | [`macos/manual-setup.md`](macos/manual-setup.md) | macOS settings that can't be automated — check this on any new machine |

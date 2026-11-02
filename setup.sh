@@ -501,8 +501,8 @@ PY
 }
 
 # BetterMouse has no command for importing settings, and writing its
-# preferences file directly would risk the license key stored in it -- so,
-# like the Chrome step, this only gets you to the one manual click.
+# preferences file directly would risk the license key stored in it -- so
+# this only gets you to the one manual click.
 step_bettermouse() {
   local app="app installed"
 
@@ -527,8 +527,8 @@ step_bettermouse() {
   step_action "Opening BetterMouse"
   open -a "BetterMouse" 2>/dev/null
   step_detail "$app, config not imported -- path copied to clipboard"
-  # The path is spelled out too, because a later step (Chrome) can replace
-  # the clipboard before you get to this one.
+  # The path is spelled out too, because something else can replace the
+  # clipboard before you get to this one.
   step_warn "BetterMouse: open its settings, choose import, press Cmd+Shift+G in the file picker and paste $BETTERMOUSE_CONFIG"
 }
 
@@ -920,75 +920,6 @@ step_vscode() {
   step_detail "settings linked, $ext_result"
 }
 
-CHROME_EXT_DIR="$WORKSHOP_DIR/chrome/keepa-lookup"
-# Unpacked extensions' filesystem paths live here, not in the plain
-# "Preferences" file -- it's plain JSON (tamper-hashed, not encrypted), just
-# a separate file from regular settings.
-CHROME_PREFS="$HOME/Library/Application Support/Google/Chrome/Default/Secure Preferences"
-
-# Chrome has no CLI for installing an unpacked extension (unlike `code
-# --install-extension`), nor for reloading one -- both are deliberately
-# click-only, the same protection that blocks silently sideloading one.
-# Best available without turning the profile into an enterprise-managed one:
-#
-# - Not loaded at all: detected by the absolute path showing up verbatim in
-#   the profile's Secure Preferences JSON. If missing, open the Load-unpacked
-#   screen and put the path on the clipboard.
-# - Loaded but stale: Chrome caches the version of the service worker it has
-#   registered (service_worker_registration_info.version, next to that same
-#   path) -- if that doesn't match manifest.json on disk, source has changed
-#   since the last manual reload. Flagged, not fixed: nothing short of the
-#   heavier options (a standing remote-debugging port, or a companion
-#   extension carrying the broad "management" permission) can click the
-#   reload button from a shell script.
-step_chrome_keepa_lookup() {
-  if [ ! -d "/Applications/Google Chrome.app" ]; then
-    step_action "Checking for Google Chrome: not installed"
-    step_detail "skipped -- Chrome not installed"
-    return 0
-  fi
-  step_action "Checking for Google Chrome: installed"
-
-  if [ ! -f "$CHROME_PREFS" ] || ! grep -qF "$CHROME_EXT_DIR" "$CHROME_PREFS"; then
-    step_action "Checking Chrome's profile for keepa-lookup: not loaded"
-    step_action "Copying the extension's path to the clipboard"
-    printf '%s' "$CHROME_EXT_DIR" | pbcopy 2>/dev/null
-    step_action "Opening chrome://extensions"
-    open -a "Google Chrome" "chrome://extensions" 2>/dev/null
-    step_detail "not loaded yet -- path copied to clipboard"
-    step_warn "Chrome: enable Developer mode, click \"Load unpacked\", paste the path (already on your clipboard)"
-    return 0
-  fi
-
-  step_action "Checking Chrome's profile for keepa-lookup: loaded"
-
-  if ! command -v jq &>/dev/null; then
-    step_action "Skipping the version check: jq not installed"
-    step_detail "loaded, version not checked (no jq)"
-    return 0
-  fi
-
-  local disk_version loaded_version
-  disk_version="$(jq -r '.version' "$CHROME_EXT_DIR/manifest.json")"
-  loaded_version="$(jq -r --arg path "$CHROME_EXT_DIR" '
-    .extensions.settings
-    | to_entries[]
-    | select(.value.path == $path)
-    | .value.service_worker_registration_info.version // empty
-  ' "$CHROME_PREFS" | head -1)"
-
-  if [ -n "$loaded_version" ] && [ "$loaded_version" != "$disk_version" ]; then
-    step_action "Comparing the loaded version with manifest.json: v$loaded_version loaded, v$disk_version on disk"
-    step_action "Opening chrome://extensions"
-    open -a "Google Chrome" "chrome://extensions" 2>/dev/null
-    step_detail "loaded v$loaded_version, disk has v$disk_version"
-    step_warn "Chrome: keepa-lookup changed since it was last loaded -- click its reload icon on chrome://extensions"
-  else
-    step_action "Comparing the loaded version with manifest.json: both v$disk_version"
-    step_detail "already loaded, up to date"
-  fi
-}
-
 # Only checks, never installs: Docker Desktop is a large install, and its
 # license needs a paid plan at larger companies -- that's the user's call.
 # `docker compose version` works without the Docker daemon running, and
@@ -1124,7 +1055,6 @@ run_step "Hammerspoon"        step_hammerspoon
 run_step "BetterMouse"        step_bettermouse
 run_step "Claude"             step_claude
 run_step "VS Code"            step_vscode
-run_step "Chrome: keepa-lookup" step_chrome_keepa_lookup
 run_step "Docker"             step_docker
 run_step "Quire"              step_quire
 
