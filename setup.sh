@@ -1091,30 +1091,6 @@ install_latest_release() {
   fi
 }
 
-# Hop is signed ad hoc, so macOS treats every new version as a different app
-# and the Accessibility and Screen Recording grants stop applying to it. A
-# new version therefore always ends with a reminder to grant them again. Hop
-# also has to be running to work, and it adds itself to Login Items on its
-# first launch, so a fresh install is opened here too.
-step_hop() {
-  local release_installed=0 had_hop=0
-  [ -d "/Applications/Hop.app" ] && had_hop=1
-
-  install_latest_release emaishoaib/hop Hop || return 1
-  [ "$release_installed" -eq 1 ] || return 0
-
-  if ! pgrep -xq Hop; then
-    step_action "Opening Hop"
-    open "/Applications/Hop.app"
-  fi
-
-  if [ "$had_hop" -eq 1 ]; then
-    step_warn "Hop: in System Settings > Privacy & Security, remove Hop from Accessibility and Screen Recording, add it back to both, then relaunch Hop"
-  else
-    step_warn "Hop: grant Accessibility and Screen Recording when it asks, then relaunch Hop"
-  fi
-}
-
 step_quire() {
   local release_installed=0
   install_latest_release emaishoaib/quire Quire
@@ -1150,7 +1126,6 @@ run_step "Claude"             step_claude
 run_step "VS Code"            step_vscode
 run_step "Chrome: keepa-lookup" step_chrome_keepa_lookup
 run_step "Docker"             step_docker
-run_step "Hop"                step_hop
 run_step "Quire"              step_quire
 
 echo ""
