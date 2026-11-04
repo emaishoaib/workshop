@@ -21,8 +21,6 @@ While it runs, `setup.sh` shows each step's progress live, then collapses every 
 
 `setup.sh` installs prerequisites (fzf, gh, nvm and Node), wires the shell config into `~/.zshrc`, and configures a global gitignore (`.dbtoolsrc`, used by [`db/`](db/README.md)'s tooling, is always ignored machine-wide, not just where you remember to add it). Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
 
-`setup.sh` doesn't install [Hop](https://github.com/emaishoaib/hop). Its GitHub releases are unsigned, so build it from its repo instead.
-
 ---
 
 # Files you create yourself
