@@ -21,8 +21,6 @@ While it runs, `setup.sh` shows each step's progress live, then collapses every 
 
 `setup.sh` installs prerequisites (fzf, gh, nvm and Node), wires the shell config into `~/.zshrc`, and configures a global gitignore (`.dbtoolsrc`, used by [`db/`](db/README.md)'s tooling, is always ignored machine-wide, not just where you remember to add it). Any machine-specific config can still live in `~/.zshrc` alongside it as normal.
 
-`setup.sh` also installs my Mac app [Quire](https://github.com/emaishoaib/quire) from its latest GitHub release. It compares the release's version with the copy in `/Applications` and only downloads when they differ, so re-running it is how you update it. The repo publishes a release when a version tag such as `v1.1` is pushed.
-
 `setup.sh` doesn't install [Hop](https://github.com/emaishoaib/hop). Its GitHub releases are unsigned, so build it from its repo instead.
 
 ---
