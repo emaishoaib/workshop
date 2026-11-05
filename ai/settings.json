@@ -5,6 +5,11 @@
       "Bash(git log:*)",
       "Bash(git merge-base:*)",
       "Bash(python3 -c:*)"
-    ]
-  }
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "effortLevel": "high",
+  "theme": "dark",
+  "skipDangerousModePermissionPrompt": true,
+  "idleCompaction": false
 }
