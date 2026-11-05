@@ -30,7 +30,6 @@ A few parts of this repo read files that are never committed, because they hold 
 | File | Read by | What goes in it |
 |------|---------|-----------------|
 | `ai/local.env` | `shell/init.zsh`, and `setup.sh`'s Gemini key check | Secrets exported as environment variables, e.g. `GEMINI_API_KEY` |
-| `ai/settings.local.json` | `setup.sh`, merged into `~/.claude/settings.json` | Extra Claude permission entries for private tools, same shape as `ai/settings.json` |
 | `db/local.zsh` | `shell/init.zsh` | The two remote hook functions `ddb` and `dmig` call for `stg`/`prod` (see [`db/`](db/README.md#localzsh)) |
 | `.dbtoolsrc` | `ddb` and `dmig` | Per-project DB settings. It lives in each project repo, not here, and is ignored machine-wide (see [`db/`](db/README.md#required-dbtoolsrc-variables)) |
 

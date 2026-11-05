@@ -588,39 +588,29 @@ claude_skills() {
   fi
 }
 
-# Merges ai/settings.json's allowlist into ~/.claude/settings.json, plus
-# ai/settings.local.json's when it exists. The local file is gitignored: it
-# holds permissions tied to private tools, which don't belong
-# in this public repo. Entries are only ever added, never removed.
-claude_permissions() {
-  brew_ensure jq || return 1
+# Links ~/.claude/settings.json to ai/settings.json, so settings changed from
+# Claude land in the repo. A real file already there is moved aside to
+# settings.json.backup-<timestamp> first, so nothing in it is lost.
+claude_settings() {
+  local source="$WORKSHOP_DIR/ai/settings.json"
+  local target="$HOME/.claude/settings.json"
+  local backup
 
-  local claude_settings="$HOME/.claude/settings.json"
-  local repo_settings="$WORKSHOP_DIR/ai/settings.json"
-  local local_settings="$WORKSHOP_DIR/ai/settings.local.json"
-  local sources=("$repo_settings") tmp
+  mkdir -p "$HOME/.claude"
 
-  if [ ! -f "$claude_settings" ]; then
-    step_action "Creating an empty ~/.claude/settings.json"
-    echo '{}' > "$claude_settings"
+  if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+    step_action "Checking ~/.claude/settings.json: already linked to ai/settings.json"
+    return 0
   fi
 
-  step_action "Merging the $(jq '.permissions.allow | length' "$repo_settings") allowlist entries from ai/settings.json into ~/.claude/settings.json"
-  if [ -f "$local_settings" ]; then
-    step_action "Merging the $(jq '.permissions.allow | length' "$local_settings") allowlist entries from ai/settings.local.json too"
-    sources+=("$local_settings")
+  if [ -e "$target" ] && [ ! -L "$target" ]; then
+    backup="$target.backup-$(date '+%Y%m%d-%H%M%S')"
+    step_action "Moving the existing ~/.claude/settings.json aside to $(basename "$backup")"
+    mv "$target" "$backup" || return 1
   fi
 
-  tmp="$(mktemp)"
-  jq -s '
-    .[0] * {
-      "permissions": (
-        (.[0].permissions // {}) * {
-          "allow": ([.[].permissions.allow // []] | add | unique)
-        }
-      )
-    }
-  ' "$claude_settings" "${sources[@]}" > "$tmp" && mv "$tmp" "$claude_settings"
+  step_action "Linking ~/.claude/settings.json to ai/settings.json"
+  ln -sf "$source" "$target"
 }
 
 video_vision_prereqs() {
@@ -723,7 +713,7 @@ step_claude() {
   local failed=() have=() parts=() skills_skipped=0 claude_bin item
   claude_config || failed+=("CLAUDE.md")
   claude_skills || failed+=("skills")
-  claude_permissions || failed+=("permissions")
+  claude_settings || failed+=("settings")
 
   claude_bin="$(find_claude_bin)"
   if [ -z "$claude_bin" ]; then
@@ -740,7 +730,7 @@ step_claude() {
   fi
   parts=("CLAUDE.md")
   [ "$skills_skipped" -eq 0 ] && parts+=("skills")
-  parts+=("permissions")
+  parts+=("settings")
   if [ -z "$claude_bin" ]; then
     parts+=("video-vision skipped (no CLI)")
   else
